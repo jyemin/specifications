@@ -115,7 +115,7 @@ The cloud provider's native region name for the host the application is running 
 ### Client Locality Detection
 
 When `localCloud` or `localRegion` is `"auto"`, the driver MUST attempt to detect the host's cloud provider and region
-by querying the following instance metadata endpoints in order, stopping at the first success:
+by querying the following instance metadata endpoints:
 
 | Cloud  | Endpoint                                                                           | Region field            |
 | ------ | ---------------------------------------------------------------------------------- | ----------------------- |
@@ -167,8 +167,7 @@ The selection algorithm is:
 1. Retrieve TXT records for all hosts returned by the SRV query.
 2. Partition hosts into tiers as defined in [Locality-Aware Server Selection](#locality-aware-server-selection).
 3. Fill the seedlist up to `srvMaxHosts` by taking hosts from the highest-populated tier first, then lower tiers as
-   needed. Within each tier, select randomly (RECOMMENDED: Fisher-Yates shuffle, consistent with the existing
-   `srvMaxHosts` algorithm).
+   needed. Within each tier, select randomly, consistent with the existing `srvMaxHosts` algorithm).
 
 If `srvMaxHosts` is zero or not set, all SRV hosts are included in the seedlist and locality preference applies only
 at server selection time.
