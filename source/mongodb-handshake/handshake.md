@@ -51,7 +51,11 @@ and is maintained for backwards compatibility with servers that do not support t
 Drivers MUST use the `OP_MSG` protocol for all handshakes. If a [server API version](../versioned-api/versioned-api.md)
 is requested or `loadBalanced: True`, drivers MUST also use the `hello` command for the initial handshake. If server API
 version is not requested and `loadBalanced: False`, drivers MUST use legacy hello for the first message of the initial
-handshake, and include `helloOk:true` in the handshake request.
+handshake.
+
+Drivers MUST include `helloOk: true` in the initial handshake request, whether the command is `hello` or legacy hello.
+The server remembers it for the rest of the connection, so later commands on the connection need not repeat it. Without
+it, the server words a not-primary error as "not master" instead of "not primary". The error codes are the same.
 
 Drivers MUST include `backpressure: "2"` in their handshake request in order to explicitly version their supported
 version of the client backpressure specification. The value of `backpressure` MUST be the string `"2"` and not a literal
@@ -83,7 +87,8 @@ conn.connect()  # Connect via TCP / TLS
 if stable_api_configured or client_options.load_balanced:
     cmd = {"hello": 1}
 else:
-    cmd = {"legacy hello": 1, "helloOk": 1}
+    cmd = {"legacy hello": 1}
+cmd["helloOk"] = True
 cmd["backpressure"] = "2"
 cmd["client"] = client_metadata
 if client_options.compressors:
@@ -653,6 +658,8 @@ support the `hello` command, the `helloOk: true` argument is ignored and the leg
 
 ## Changelog
 
+- 2026-11-11: Drivers MUST include `helloOk: true` in the initial handshake request, whether it is `hello` or legacy
+    hello.
 - 2026-10-14: Add `OPENCODE_CLIENT` to the `env.agent` detection table.
 - 2026-09-22: Add `env.agent` to `client` document for agentic client identification.
 - 2026-09-11: Require `driver.name` and `driver.version` entries to correspond by index, and clarify that duplicate

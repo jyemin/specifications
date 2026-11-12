@@ -1,0 +1,1902 @@
+{
+  "description": "client-env-agent",
+  "schemaVersion": "1.30",
+  "runOnRequirements": [
+    {
+      "minServerVersion": "4.4",
+      "auth": false,
+      "topologies": [
+        "single",
+        "replicaset",
+        "sharded"
+      ],
+      "compression": false,
+      "serverApi": false
+    }
+  ],
+  "tests": [
+    {
+      "description": "a known agent variable sets client.env.agent to the agent's name",
+      "operations": [
+        {
+          "name": "createEntities",
+          "object": "testRunner",
+          "arguments": {
+            "entities": [
+              {
+                "client": {
+                  "id": "client1",
+                  "useMultipleMongoses": false,
+                  "uriOptions": {
+                    "appname": "handshakeTest"
+                  },
+                  "setHostEnvironment": {
+                    "CLAUDECODE": "1",
+                    "CLAUDE_CODE_ENTRYPOINT": null,
+                    "CURSOR_AGENT": null,
+                    "CODEX_SANDBOX": null,
+                    "CLINE_ACTIVE": null,
+                    "GEMINI_CLI": null,
+                    "AUGMENT_AGENT": null,
+                    "OPENCODE": null,
+                    "OPENCODE_CLIENT": null,
+                    "TRAE_AI_SHELL_ID": null,
+                    "GOOSE_TERMINAL": null,
+                    "GOOSE_AGENT": null,
+                    "AI_AGENT": null
+                  },
+                  "observeWireMessages": {
+                    "connections": [
+                      "application"
+                    ],
+                    "phases": [
+                      "handshake"
+                    ]
+                  }
+                }
+              },
+              {
+                "database": {
+                  "id": "database1",
+                  "client": "client1",
+                  "databaseName": "handshake-test"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "runCommand",
+          "object": "database1",
+          "arguments": {
+            "commandName": "ping",
+            "command": {
+              "ping": 1
+            }
+          }
+        }
+      ],
+      "expectWireMessages": [
+        {
+          "client": "client1",
+          "messages": [
+            {
+              "opcode": "OP_MSG",
+              "responseTo": 0,
+              "flags": [],
+              "command": {
+                "isMaster": 1,
+                "helloOk": true,
+                "backpressure": "2",
+                "compression": {
+                  "$$unsetOrMatches": []
+                },
+                "client": {
+                  "application": {
+                    "name": "handshakeTest"
+                  },
+                  "driver": {
+                    "name": {
+                      "$$type": "string"
+                    },
+                    "version": {
+                      "$$type": "string"
+                    }
+                  },
+                  "os": {
+                    "type": {
+                      "$$type": "string"
+                    },
+                    "name": {
+                      "$$unsetOrMatches": {
+                        "$$type": "string"
+                      }
+                    },
+                    "architecture": {
+                      "$$unsetOrMatches": {
+                        "$$type": "string"
+                      }
+                    },
+                    "version": {
+                      "$$unsetOrMatches": {
+                        "$$type": "string"
+                      }
+                    }
+                  },
+                  "platform": {
+                    "$$unsetOrMatches": {
+                      "$$type": "string"
+                    }
+                  },
+                  "env": {
+                    "agent": "claude_code",
+                    "container": {
+                      "$$unsetOrMatches": {
+                        "runtime": "docker"
+                      }
+                    }
+                  }
+                },
+                "$db": "admin",
+                "$readPreference": {
+                  "$$unsetOrMatches": {
+                    "mode": "primaryPreferred"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "description": "a known agent's name does not depend on the value of its variable",
+      "operations": [
+        {
+          "name": "createEntities",
+          "object": "testRunner",
+          "arguments": {
+            "entities": [
+              {
+                "client": {
+                  "id": "client2",
+                  "useMultipleMongoses": false,
+                  "uriOptions": {
+                    "appname": "handshakeTest"
+                  },
+                  "setHostEnvironment": {
+                    "CLAUDECODE": null,
+                    "CLAUDE_CODE_ENTRYPOINT": null,
+                    "CURSOR_AGENT": "some-value-42",
+                    "CODEX_SANDBOX": null,
+                    "CLINE_ACTIVE": null,
+                    "GEMINI_CLI": null,
+                    "AUGMENT_AGENT": null,
+                    "OPENCODE": null,
+                    "OPENCODE_CLIENT": null,
+                    "TRAE_AI_SHELL_ID": null,
+                    "GOOSE_TERMINAL": null,
+                    "GOOSE_AGENT": null,
+                    "AI_AGENT": null
+                  },
+                  "observeWireMessages": {
+                    "connections": [
+                      "application"
+                    ],
+                    "phases": [
+                      "handshake"
+                    ]
+                  }
+                }
+              },
+              {
+                "database": {
+                  "id": "database2",
+                  "client": "client2",
+                  "databaseName": "handshake-test"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "runCommand",
+          "object": "database2",
+          "arguments": {
+            "commandName": "ping",
+            "command": {
+              "ping": 1
+            }
+          }
+        }
+      ],
+      "expectWireMessages": [
+        {
+          "client": "client2",
+          "messages": [
+            {
+              "opcode": "OP_MSG",
+              "responseTo": 0,
+              "flags": [],
+              "command": {
+                "isMaster": 1,
+                "helloOk": true,
+                "backpressure": "2",
+                "compression": {
+                  "$$unsetOrMatches": []
+                },
+                "client": {
+                  "application": {
+                    "name": "handshakeTest"
+                  },
+                  "driver": {
+                    "name": {
+                      "$$type": "string"
+                    },
+                    "version": {
+                      "$$type": "string"
+                    }
+                  },
+                  "os": {
+                    "type": {
+                      "$$type": "string"
+                    },
+                    "name": {
+                      "$$unsetOrMatches": {
+                        "$$type": "string"
+                      }
+                    },
+                    "architecture": {
+                      "$$unsetOrMatches": {
+                        "$$type": "string"
+                      }
+                    },
+                    "version": {
+                      "$$unsetOrMatches": {
+                        "$$type": "string"
+                      }
+                    }
+                  },
+                  "platform": {
+                    "$$unsetOrMatches": {
+                      "$$type": "string"
+                    }
+                  },
+                  "env": {
+                    "agent": "cursor",
+                    "container": {
+                      "$$unsetOrMatches": {
+                        "runtime": "docker"
+                      }
+                    }
+                  }
+                },
+                "$db": "admin",
+                "$readPreference": {
+                  "$$unsetOrMatches": {
+                    "mode": "primaryPreferred"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "description": "the first known agent in the list wins",
+      "operations": [
+        {
+          "name": "createEntities",
+          "object": "testRunner",
+          "arguments": {
+            "entities": [
+              {
+                "client": {
+                  "id": "client3",
+                  "useMultipleMongoses": false,
+                  "uriOptions": {
+                    "appname": "handshakeTest"
+                  },
+                  "setHostEnvironment": {
+                    "CLAUDECODE": null,
+                    "CLAUDE_CODE_ENTRYPOINT": null,
+                    "CURSOR_AGENT": "1",
+                    "CODEX_SANDBOX": null,
+                    "CLINE_ACTIVE": null,
+                    "GEMINI_CLI": "1",
+                    "AUGMENT_AGENT": null,
+                    "OPENCODE": null,
+                    "OPENCODE_CLIENT": null,
+                    "TRAE_AI_SHELL_ID": null,
+                    "GOOSE_TERMINAL": null,
+                    "GOOSE_AGENT": null,
+                    "AI_AGENT": null
+                  },
+                  "observeWireMessages": {
+                    "connections": [
+                      "application"
+                    ],
+                    "phases": [
+                      "handshake"
+                    ]
+                  }
+                }
+              },
+              {
+                "database": {
+                  "id": "database3",
+                  "client": "client3",
+                  "databaseName": "handshake-test"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "runCommand",
+          "object": "database3",
+          "arguments": {
+            "commandName": "ping",
+            "command": {
+              "ping": 1
+            }
+          }
+        }
+      ],
+      "expectWireMessages": [
+        {
+          "client": "client3",
+          "messages": [
+            {
+              "opcode": "OP_MSG",
+              "responseTo": 0,
+              "flags": [],
+              "command": {
+                "isMaster": 1,
+                "helloOk": true,
+                "backpressure": "2",
+                "compression": {
+                  "$$unsetOrMatches": []
+                },
+                "client": {
+                  "application": {
+                    "name": "handshakeTest"
+                  },
+                  "driver": {
+                    "name": {
+                      "$$type": "string"
+                    },
+                    "version": {
+                      "$$type": "string"
+                    }
+                  },
+                  "os": {
+                    "type": {
+                      "$$type": "string"
+                    },
+                    "name": {
+                      "$$unsetOrMatches": {
+                        "$$type": "string"
+                      }
+                    },
+                    "architecture": {
+                      "$$unsetOrMatches": {
+                        "$$type": "string"
+                      }
+                    },
+                    "version": {
+                      "$$unsetOrMatches": {
+                        "$$type": "string"
+                      }
+                    }
+                  },
+                  "platform": {
+                    "$$unsetOrMatches": {
+                      "$$type": "string"
+                    }
+                  },
+                  "env": {
+                    "agent": "cursor",
+                    "container": {
+                      "$$unsetOrMatches": {
+                        "runtime": "docker"
+                      }
+                    }
+                  }
+                },
+                "$db": "admin",
+                "$readPreference": {
+                  "$$unsetOrMatches": {
+                    "mode": "primaryPreferred"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "description": "a known agent wins over the generic AI_AGENT variable",
+      "operations": [
+        {
+          "name": "createEntities",
+          "object": "testRunner",
+          "arguments": {
+            "entities": [
+              {
+                "client": {
+                  "id": "client4",
+                  "useMultipleMongoses": false,
+                  "uriOptions": {
+                    "appname": "handshakeTest"
+                  },
+                  "setHostEnvironment": {
+                    "CLAUDECODE": "1",
+                    "CLAUDE_CODE_ENTRYPOINT": null,
+                    "CURSOR_AGENT": null,
+                    "CODEX_SANDBOX": null,
+                    "CLINE_ACTIVE": null,
+                    "GEMINI_CLI": null,
+                    "AUGMENT_AGENT": null,
+                    "OPENCODE": null,
+                    "OPENCODE_CLIENT": null,
+                    "TRAE_AI_SHELL_ID": null,
+                    "GOOSE_TERMINAL": null,
+                    "GOOSE_AGENT": null,
+                    "AI_AGENT": "custom-agent"
+                  },
+                  "observeWireMessages": {
+                    "connections": [
+                      "application"
+                    ],
+                    "phases": [
+                      "handshake"
+                    ]
+                  }
+                }
+              },
+              {
+                "database": {
+                  "id": "database4",
+                  "client": "client4",
+                  "databaseName": "handshake-test"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "runCommand",
+          "object": "database4",
+          "arguments": {
+            "commandName": "ping",
+            "command": {
+              "ping": 1
+            }
+          }
+        }
+      ],
+      "expectWireMessages": [
+        {
+          "client": "client4",
+          "messages": [
+            {
+              "opcode": "OP_MSG",
+              "responseTo": 0,
+              "flags": [],
+              "command": {
+                "isMaster": 1,
+                "helloOk": true,
+                "backpressure": "2",
+                "compression": {
+                  "$$unsetOrMatches": []
+                },
+                "client": {
+                  "application": {
+                    "name": "handshakeTest"
+                  },
+                  "driver": {
+                    "name": {
+                      "$$type": "string"
+                    },
+                    "version": {
+                      "$$type": "string"
+                    }
+                  },
+                  "os": {
+                    "type": {
+                      "$$type": "string"
+                    },
+                    "name": {
+                      "$$unsetOrMatches": {
+                        "$$type": "string"
+                      }
+                    },
+                    "architecture": {
+                      "$$unsetOrMatches": {
+                        "$$type": "string"
+                      }
+                    },
+                    "version": {
+                      "$$unsetOrMatches": {
+                        "$$type": "string"
+                      }
+                    }
+                  },
+                  "platform": {
+                    "$$unsetOrMatches": {
+                      "$$type": "string"
+                    }
+                  },
+                  "env": {
+                    "agent": "claude_code",
+                    "container": {
+                      "$$unsetOrMatches": {
+                        "runtime": "docker"
+                      }
+                    }
+                  }
+                },
+                "$db": "admin",
+                "$readPreference": {
+                  "$$unsetOrMatches": {
+                    "mode": "primaryPreferred"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "description": "AI_AGENT with a descriptive value is reported as it is",
+      "operations": [
+        {
+          "name": "createEntities",
+          "object": "testRunner",
+          "arguments": {
+            "entities": [
+              {
+                "client": {
+                  "id": "client5",
+                  "useMultipleMongoses": false,
+                  "uriOptions": {
+                    "appname": "handshakeTest"
+                  },
+                  "setHostEnvironment": {
+                    "CLAUDECODE": null,
+                    "CLAUDE_CODE_ENTRYPOINT": null,
+                    "CURSOR_AGENT": null,
+                    "CODEX_SANDBOX": null,
+                    "CLINE_ACTIVE": null,
+                    "GEMINI_CLI": null,
+                    "AUGMENT_AGENT": null,
+                    "OPENCODE": null,
+                    "OPENCODE_CLIENT": null,
+                    "TRAE_AI_SHELL_ID": null,
+                    "GOOSE_TERMINAL": null,
+                    "GOOSE_AGENT": null,
+                    "AI_AGENT": "custom-agent"
+                  },
+                  "observeWireMessages": {
+                    "connections": [
+                      "application"
+                    ],
+                    "phases": [
+                      "handshake"
+                    ]
+                  }
+                }
+              },
+              {
+                "database": {
+                  "id": "database5",
+                  "client": "client5",
+                  "databaseName": "handshake-test"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "runCommand",
+          "object": "database5",
+          "arguments": {
+            "commandName": "ping",
+            "command": {
+              "ping": 1
+            }
+          }
+        }
+      ],
+      "expectWireMessages": [
+        {
+          "client": "client5",
+          "messages": [
+            {
+              "opcode": "OP_MSG",
+              "responseTo": 0,
+              "flags": [],
+              "command": {
+                "isMaster": 1,
+                "helloOk": true,
+                "backpressure": "2",
+                "compression": {
+                  "$$unsetOrMatches": []
+                },
+                "client": {
+                  "application": {
+                    "name": "handshakeTest"
+                  },
+                  "driver": {
+                    "name": {
+                      "$$type": "string"
+                    },
+                    "version": {
+                      "$$type": "string"
+                    }
+                  },
+                  "os": {
+                    "type": {
+                      "$$type": "string"
+                    },
+                    "name": {
+                      "$$unsetOrMatches": {
+                        "$$type": "string"
+                      }
+                    },
+                    "architecture": {
+                      "$$unsetOrMatches": {
+                        "$$type": "string"
+                      }
+                    },
+                    "version": {
+                      "$$unsetOrMatches": {
+                        "$$type": "string"
+                      }
+                    }
+                  },
+                  "platform": {
+                    "$$unsetOrMatches": {
+                      "$$type": "string"
+                    }
+                  },
+                  "env": {
+                    "agent": "custom-agent",
+                    "container": {
+                      "$$unsetOrMatches": {
+                        "runtime": "docker"
+                      }
+                    }
+                  }
+                },
+                "$db": "admin",
+                "$readPreference": {
+                  "$$unsetOrMatches": {
+                    "mode": "primaryPreferred"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "description": "AI_AGENT with the value true is reported as ai_agent",
+      "operations": [
+        {
+          "name": "createEntities",
+          "object": "testRunner",
+          "arguments": {
+            "entities": [
+              {
+                "client": {
+                  "id": "client6",
+                  "useMultipleMongoses": false,
+                  "uriOptions": {
+                    "appname": "handshakeTest"
+                  },
+                  "setHostEnvironment": {
+                    "CLAUDECODE": null,
+                    "CLAUDE_CODE_ENTRYPOINT": null,
+                    "CURSOR_AGENT": null,
+                    "CODEX_SANDBOX": null,
+                    "CLINE_ACTIVE": null,
+                    "GEMINI_CLI": null,
+                    "AUGMENT_AGENT": null,
+                    "OPENCODE": null,
+                    "OPENCODE_CLIENT": null,
+                    "TRAE_AI_SHELL_ID": null,
+                    "GOOSE_TERMINAL": null,
+                    "GOOSE_AGENT": null,
+                    "AI_AGENT": "true"
+                  },
+                  "observeWireMessages": {
+                    "connections": [
+                      "application"
+                    ],
+                    "phases": [
+                      "handshake"
+                    ]
+                  }
+                }
+              },
+              {
+                "database": {
+                  "id": "database6",
+                  "client": "client6",
+                  "databaseName": "handshake-test"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "runCommand",
+          "object": "database6",
+          "arguments": {
+            "commandName": "ping",
+            "command": {
+              "ping": 1
+            }
+          }
+        }
+      ],
+      "expectWireMessages": [
+        {
+          "client": "client6",
+          "messages": [
+            {
+              "opcode": "OP_MSG",
+              "responseTo": 0,
+              "flags": [],
+              "command": {
+                "isMaster": 1,
+                "helloOk": true,
+                "backpressure": "2",
+                "compression": {
+                  "$$unsetOrMatches": []
+                },
+                "client": {
+                  "application": {
+                    "name": "handshakeTest"
+                  },
+                  "driver": {
+                    "name": {
+                      "$$type": "string"
+                    },
+                    "version": {
+                      "$$type": "string"
+                    }
+                  },
+                  "os": {
+                    "type": {
+                      "$$type": "string"
+                    },
+                    "name": {
+                      "$$unsetOrMatches": {
+                        "$$type": "string"
+                      }
+                    },
+                    "architecture": {
+                      "$$unsetOrMatches": {
+                        "$$type": "string"
+                      }
+                    },
+                    "version": {
+                      "$$unsetOrMatches": {
+                        "$$type": "string"
+                      }
+                    }
+                  },
+                  "platform": {
+                    "$$unsetOrMatches": {
+                      "$$type": "string"
+                    }
+                  },
+                  "env": {
+                    "agent": "ai_agent",
+                    "container": {
+                      "$$unsetOrMatches": {
+                        "runtime": "docker"
+                      }
+                    }
+                  }
+                },
+                "$db": "admin",
+                "$readPreference": {
+                  "$$unsetOrMatches": {
+                    "mode": "primaryPreferred"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "description": "AI_AGENT is normalized before it is compared to true",
+      "operations": [
+        {
+          "name": "createEntities",
+          "object": "testRunner",
+          "arguments": {
+            "entities": [
+              {
+                "client": {
+                  "id": "client7",
+                  "useMultipleMongoses": false,
+                  "uriOptions": {
+                    "appname": "handshakeTest"
+                  },
+                  "setHostEnvironment": {
+                    "CLAUDECODE": null,
+                    "CLAUDE_CODE_ENTRYPOINT": null,
+                    "CURSOR_AGENT": null,
+                    "CODEX_SANDBOX": null,
+                    "CLINE_ACTIVE": null,
+                    "GEMINI_CLI": null,
+                    "AUGMENT_AGENT": null,
+                    "OPENCODE": null,
+                    "OPENCODE_CLIENT": null,
+                    "TRAE_AI_SHELL_ID": null,
+                    "GOOSE_TERMINAL": null,
+                    "GOOSE_AGENT": null,
+                    "AI_AGENT": " true "
+                  },
+                  "observeWireMessages": {
+                    "connections": [
+                      "application"
+                    ],
+                    "phases": [
+                      "handshake"
+                    ]
+                  }
+                }
+              },
+              {
+                "database": {
+                  "id": "database7",
+                  "client": "client7",
+                  "databaseName": "handshake-test"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "runCommand",
+          "object": "database7",
+          "arguments": {
+            "commandName": "ping",
+            "command": {
+              "ping": 1
+            }
+          }
+        }
+      ],
+      "expectWireMessages": [
+        {
+          "client": "client7",
+          "messages": [
+            {
+              "opcode": "OP_MSG",
+              "responseTo": 0,
+              "flags": [],
+              "command": {
+                "isMaster": 1,
+                "helloOk": true,
+                "backpressure": "2",
+                "compression": {
+                  "$$unsetOrMatches": []
+                },
+                "client": {
+                  "application": {
+                    "name": "handshakeTest"
+                  },
+                  "driver": {
+                    "name": {
+                      "$$type": "string"
+                    },
+                    "version": {
+                      "$$type": "string"
+                    }
+                  },
+                  "os": {
+                    "type": {
+                      "$$type": "string"
+                    },
+                    "name": {
+                      "$$unsetOrMatches": {
+                        "$$type": "string"
+                      }
+                    },
+                    "architecture": {
+                      "$$unsetOrMatches": {
+                        "$$type": "string"
+                      }
+                    },
+                    "version": {
+                      "$$unsetOrMatches": {
+                        "$$type": "string"
+                      }
+                    }
+                  },
+                  "platform": {
+                    "$$unsetOrMatches": {
+                      "$$type": "string"
+                    }
+                  },
+                  "env": {
+                    "agent": "ai_agent",
+                    "container": {
+                      "$$unsetOrMatches": {
+                        "runtime": "docker"
+                      }
+                    }
+                  }
+                },
+                "$db": "admin",
+                "$readPreference": {
+                  "$$unsetOrMatches": {
+                    "mode": "primaryPreferred"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "description": "AI_AGENT is trimmed and lowercased",
+      "operations": [
+        {
+          "name": "createEntities",
+          "object": "testRunner",
+          "arguments": {
+            "entities": [
+              {
+                "client": {
+                  "id": "client8",
+                  "useMultipleMongoses": false,
+                  "uriOptions": {
+                    "appname": "handshakeTest"
+                  },
+                  "setHostEnvironment": {
+                    "CLAUDECODE": null,
+                    "CLAUDE_CODE_ENTRYPOINT": null,
+                    "CURSOR_AGENT": null,
+                    "CODEX_SANDBOX": null,
+                    "CLINE_ACTIVE": null,
+                    "GEMINI_CLI": null,
+                    "AUGMENT_AGENT": null,
+                    "OPENCODE": null,
+                    "OPENCODE_CLIENT": null,
+                    "TRAE_AI_SHELL_ID": null,
+                    "GOOSE_TERMINAL": null,
+                    "GOOSE_AGENT": null,
+                    "AI_AGENT": " Claude-Code_2-1-238_Agent "
+                  },
+                  "observeWireMessages": {
+                    "connections": [
+                      "application"
+                    ],
+                    "phases": [
+                      "handshake"
+                    ]
+                  }
+                }
+              },
+              {
+                "database": {
+                  "id": "database8",
+                  "client": "client8",
+                  "databaseName": "handshake-test"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "runCommand",
+          "object": "database8",
+          "arguments": {
+            "commandName": "ping",
+            "command": {
+              "ping": 1
+            }
+          }
+        }
+      ],
+      "expectWireMessages": [
+        {
+          "client": "client8",
+          "messages": [
+            {
+              "opcode": "OP_MSG",
+              "responseTo": 0,
+              "flags": [],
+              "command": {
+                "isMaster": 1,
+                "helloOk": true,
+                "backpressure": "2",
+                "compression": {
+                  "$$unsetOrMatches": []
+                },
+                "client": {
+                  "application": {
+                    "name": "handshakeTest"
+                  },
+                  "driver": {
+                    "name": {
+                      "$$type": "string"
+                    },
+                    "version": {
+                      "$$type": "string"
+                    }
+                  },
+                  "os": {
+                    "type": {
+                      "$$type": "string"
+                    },
+                    "name": {
+                      "$$unsetOrMatches": {
+                        "$$type": "string"
+                      }
+                    },
+                    "architecture": {
+                      "$$unsetOrMatches": {
+                        "$$type": "string"
+                      }
+                    },
+                    "version": {
+                      "$$unsetOrMatches": {
+                        "$$type": "string"
+                      }
+                    }
+                  },
+                  "platform": {
+                    "$$unsetOrMatches": {
+                      "$$type": "string"
+                    }
+                  },
+                  "env": {
+                    "agent": "claude-code_2-1-238_agent",
+                    "container": {
+                      "$$unsetOrMatches": {
+                        "runtime": "docker"
+                      }
+                    }
+                  }
+                },
+                "$db": "admin",
+                "$readPreference": {
+                  "$$unsetOrMatches": {
+                    "mode": "primaryPreferred"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "description": "AI_AGENT is truncated to 64 bytes",
+      "operations": [
+        {
+          "name": "createEntities",
+          "object": "testRunner",
+          "arguments": {
+            "entities": [
+              {
+                "client": {
+                  "id": "client9",
+                  "useMultipleMongoses": false,
+                  "uriOptions": {
+                    "appname": "handshakeTest"
+                  },
+                  "setHostEnvironment": {
+                    "CLAUDECODE": null,
+                    "CLAUDE_CODE_ENTRYPOINT": null,
+                    "CURSOR_AGENT": null,
+                    "CODEX_SANDBOX": null,
+                    "CLINE_ACTIVE": null,
+                    "GEMINI_CLI": null,
+                    "AUGMENT_AGENT": null,
+                    "OPENCODE": null,
+                    "OPENCODE_CLIENT": null,
+                    "TRAE_AI_SHELL_ID": null,
+                    "GOOSE_TERMINAL": null,
+                    "GOOSE_AGENT": null,
+                    "AI_AGENT": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                  },
+                  "observeWireMessages": {
+                    "connections": [
+                      "application"
+                    ],
+                    "phases": [
+                      "handshake"
+                    ]
+                  }
+                }
+              },
+              {
+                "database": {
+                  "id": "database9",
+                  "client": "client9",
+                  "databaseName": "handshake-test"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "runCommand",
+          "object": "database9",
+          "arguments": {
+            "commandName": "ping",
+            "command": {
+              "ping": 1
+            }
+          }
+        }
+      ],
+      "expectWireMessages": [
+        {
+          "client": "client9",
+          "messages": [
+            {
+              "opcode": "OP_MSG",
+              "responseTo": 0,
+              "flags": [],
+              "command": {
+                "isMaster": 1,
+                "helloOk": true,
+                "backpressure": "2",
+                "compression": {
+                  "$$unsetOrMatches": []
+                },
+                "client": {
+                  "application": {
+                    "name": "handshakeTest"
+                  },
+                  "driver": {
+                    "name": {
+                      "$$type": "string"
+                    },
+                    "version": {
+                      "$$type": "string"
+                    }
+                  },
+                  "os": {
+                    "type": {
+                      "$$type": "string"
+                    },
+                    "name": {
+                      "$$unsetOrMatches": {
+                        "$$type": "string"
+                      }
+                    },
+                    "architecture": {
+                      "$$unsetOrMatches": {
+                        "$$type": "string"
+                      }
+                    },
+                    "version": {
+                      "$$unsetOrMatches": {
+                        "$$type": "string"
+                      }
+                    }
+                  },
+                  "platform": {
+                    "$$unsetOrMatches": {
+                      "$$type": "string"
+                    }
+                  },
+                  "env": {
+                    "agent": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                    "container": {
+                      "$$unsetOrMatches": {
+                        "runtime": "docker"
+                      }
+                    }
+                  }
+                },
+                "$db": "admin",
+                "$readPreference": {
+                  "$$unsetOrMatches": {
+                    "mode": "primaryPreferred"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "description": "AI_AGENT is truncated on a character boundary",
+      "operations": [
+        {
+          "name": "createEntities",
+          "object": "testRunner",
+          "arguments": {
+            "entities": [
+              {
+                "client": {
+                  "id": "client10",
+                  "useMultipleMongoses": false,
+                  "uriOptions": {
+                    "appname": "handshakeTest"
+                  },
+                  "setHostEnvironment": {
+                    "CLAUDECODE": null,
+                    "CLAUDE_CODE_ENTRYPOINT": null,
+                    "CURSOR_AGENT": null,
+                    "CODEX_SANDBOX": null,
+                    "CLINE_ACTIVE": null,
+                    "GEMINI_CLI": null,
+                    "AUGMENT_AGENT": null,
+                    "OPENCODE": null,
+                    "OPENCODE_CLIENT": null,
+                    "TRAE_AI_SHELL_ID": null,
+                    "GOOSE_TERMINAL": null,
+                    "GOOSE_AGENT": null,
+                    "AI_AGENT": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaé"
+                  },
+                  "observeWireMessages": {
+                    "connections": [
+                      "application"
+                    ],
+                    "phases": [
+                      "handshake"
+                    ]
+                  }
+                }
+              },
+              {
+                "database": {
+                  "id": "database10",
+                  "client": "client10",
+                  "databaseName": "handshake-test"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "runCommand",
+          "object": "database10",
+          "arguments": {
+            "commandName": "ping",
+            "command": {
+              "ping": 1
+            }
+          }
+        }
+      ],
+      "expectWireMessages": [
+        {
+          "client": "client10",
+          "messages": [
+            {
+              "opcode": "OP_MSG",
+              "responseTo": 0,
+              "flags": [],
+              "command": {
+                "isMaster": 1,
+                "helloOk": true,
+                "backpressure": "2",
+                "compression": {
+                  "$$unsetOrMatches": []
+                },
+                "client": {
+                  "application": {
+                    "name": "handshakeTest"
+                  },
+                  "driver": {
+                    "name": {
+                      "$$type": "string"
+                    },
+                    "version": {
+                      "$$type": "string"
+                    }
+                  },
+                  "os": {
+                    "type": {
+                      "$$type": "string"
+                    },
+                    "name": {
+                      "$$unsetOrMatches": {
+                        "$$type": "string"
+                      }
+                    },
+                    "architecture": {
+                      "$$unsetOrMatches": {
+                        "$$type": "string"
+                      }
+                    },
+                    "version": {
+                      "$$unsetOrMatches": {
+                        "$$type": "string"
+                      }
+                    }
+                  },
+                  "platform": {
+                    "$$unsetOrMatches": {
+                      "$$type": "string"
+                    }
+                  },
+                  "env": {
+                    "agent": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                    "container": {
+                      "$$unsetOrMatches": {
+                        "runtime": "docker"
+                      }
+                    }
+                  }
+                },
+                "$db": "admin",
+                "$readPreference": {
+                  "$$unsetOrMatches": {
+                    "mode": "primaryPreferred"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "description": "an empty AI_AGENT is not populated",
+      "operations": [
+        {
+          "name": "createEntities",
+          "object": "testRunner",
+          "arguments": {
+            "entities": [
+              {
+                "client": {
+                  "id": "client11",
+                  "useMultipleMongoses": false,
+                  "uriOptions": {
+                    "appname": "handshakeTest"
+                  },
+                  "setHostEnvironment": {
+                    "CLAUDECODE": null,
+                    "CLAUDE_CODE_ENTRYPOINT": null,
+                    "CURSOR_AGENT": null,
+                    "CODEX_SANDBOX": null,
+                    "CLINE_ACTIVE": null,
+                    "GEMINI_CLI": null,
+                    "AUGMENT_AGENT": null,
+                    "OPENCODE": null,
+                    "OPENCODE_CLIENT": null,
+                    "TRAE_AI_SHELL_ID": null,
+                    "GOOSE_TERMINAL": null,
+                    "GOOSE_AGENT": null,
+                    "AI_AGENT": ""
+                  },
+                  "observeWireMessages": {
+                    "connections": [
+                      "application"
+                    ],
+                    "phases": [
+                      "handshake"
+                    ]
+                  }
+                }
+              },
+              {
+                "database": {
+                  "id": "database11",
+                  "client": "client11",
+                  "databaseName": "handshake-test"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "runCommand",
+          "object": "database11",
+          "arguments": {
+            "commandName": "ping",
+            "command": {
+              "ping": 1
+            }
+          }
+        }
+      ],
+      "expectWireMessages": [
+        {
+          "client": "client11",
+          "messages": [
+            {
+              "opcode": "OP_MSG",
+              "responseTo": 0,
+              "flags": [],
+              "command": {
+                "isMaster": 1,
+                "helloOk": true,
+                "backpressure": "2",
+                "compression": {
+                  "$$unsetOrMatches": []
+                },
+                "client": {
+                  "application": {
+                    "name": "handshakeTest"
+                  },
+                  "driver": {
+                    "name": {
+                      "$$type": "string"
+                    },
+                    "version": {
+                      "$$type": "string"
+                    }
+                  },
+                  "os": {
+                    "type": {
+                      "$$type": "string"
+                    },
+                    "name": {
+                      "$$unsetOrMatches": {
+                        "$$type": "string"
+                      }
+                    },
+                    "architecture": {
+                      "$$unsetOrMatches": {
+                        "$$type": "string"
+                      }
+                    },
+                    "version": {
+                      "$$unsetOrMatches": {
+                        "$$type": "string"
+                      }
+                    }
+                  },
+                  "platform": {
+                    "$$unsetOrMatches": {
+                      "$$type": "string"
+                    }
+                  },
+                  "env": {
+                    "$$unsetOrMatches": {
+                      "container": {
+                        "$$unsetOrMatches": {
+                          "runtime": "docker"
+                        }
+                      }
+                    }
+                  }
+                },
+                "$db": "admin",
+                "$readPreference": {
+                  "$$unsetOrMatches": {
+                    "mode": "primaryPreferred"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "description": "a whitespace-only AI_AGENT is not populated",
+      "operations": [
+        {
+          "name": "createEntities",
+          "object": "testRunner",
+          "arguments": {
+            "entities": [
+              {
+                "client": {
+                  "id": "client12",
+                  "useMultipleMongoses": false,
+                  "uriOptions": {
+                    "appname": "handshakeTest"
+                  },
+                  "setHostEnvironment": {
+                    "CLAUDECODE": null,
+                    "CLAUDE_CODE_ENTRYPOINT": null,
+                    "CURSOR_AGENT": null,
+                    "CODEX_SANDBOX": null,
+                    "CLINE_ACTIVE": null,
+                    "GEMINI_CLI": null,
+                    "AUGMENT_AGENT": null,
+                    "OPENCODE": null,
+                    "OPENCODE_CLIENT": null,
+                    "TRAE_AI_SHELL_ID": null,
+                    "GOOSE_TERMINAL": null,
+                    "GOOSE_AGENT": null,
+                    "AI_AGENT": "   "
+                  },
+                  "observeWireMessages": {
+                    "connections": [
+                      "application"
+                    ],
+                    "phases": [
+                      "handshake"
+                    ]
+                  }
+                }
+              },
+              {
+                "database": {
+                  "id": "database12",
+                  "client": "client12",
+                  "databaseName": "handshake-test"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "runCommand",
+          "object": "database12",
+          "arguments": {
+            "commandName": "ping",
+            "command": {
+              "ping": 1
+            }
+          }
+        }
+      ],
+      "expectWireMessages": [
+        {
+          "client": "client12",
+          "messages": [
+            {
+              "opcode": "OP_MSG",
+              "responseTo": 0,
+              "flags": [],
+              "command": {
+                "isMaster": 1,
+                "helloOk": true,
+                "backpressure": "2",
+                "compression": {
+                  "$$unsetOrMatches": []
+                },
+                "client": {
+                  "application": {
+                    "name": "handshakeTest"
+                  },
+                  "driver": {
+                    "name": {
+                      "$$type": "string"
+                    },
+                    "version": {
+                      "$$type": "string"
+                    }
+                  },
+                  "os": {
+                    "type": {
+                      "$$type": "string"
+                    },
+                    "name": {
+                      "$$unsetOrMatches": {
+                        "$$type": "string"
+                      }
+                    },
+                    "architecture": {
+                      "$$unsetOrMatches": {
+                        "$$type": "string"
+                      }
+                    },
+                    "version": {
+                      "$$unsetOrMatches": {
+                        "$$type": "string"
+                      }
+                    }
+                  },
+                  "platform": {
+                    "$$unsetOrMatches": {
+                      "$$type": "string"
+                    }
+                  },
+                  "env": {
+                    "$$unsetOrMatches": {
+                      "container": {
+                        "$$unsetOrMatches": {
+                          "runtime": "docker"
+                        }
+                      }
+                    }
+                  }
+                },
+                "$db": "admin",
+                "$readPreference": {
+                  "$$unsetOrMatches": {
+                    "mode": "primaryPreferred"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "description": "no agent variable means no client.env.agent",
+      "operations": [
+        {
+          "name": "createEntities",
+          "object": "testRunner",
+          "arguments": {
+            "entities": [
+              {
+                "client": {
+                  "id": "client13",
+                  "useMultipleMongoses": false,
+                  "uriOptions": {
+                    "appname": "handshakeTest"
+                  },
+                  "setHostEnvironment": {
+                    "CLAUDECODE": null,
+                    "CLAUDE_CODE_ENTRYPOINT": null,
+                    "CURSOR_AGENT": null,
+                    "CODEX_SANDBOX": null,
+                    "CLINE_ACTIVE": null,
+                    "GEMINI_CLI": null,
+                    "AUGMENT_AGENT": null,
+                    "OPENCODE": null,
+                    "OPENCODE_CLIENT": null,
+                    "TRAE_AI_SHELL_ID": null,
+                    "GOOSE_TERMINAL": null,
+                    "GOOSE_AGENT": null,
+                    "AI_AGENT": null
+                  },
+                  "observeWireMessages": {
+                    "connections": [
+                      "application"
+                    ],
+                    "phases": [
+                      "handshake"
+                    ]
+                  }
+                }
+              },
+              {
+                "database": {
+                  "id": "database13",
+                  "client": "client13",
+                  "databaseName": "handshake-test"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "runCommand",
+          "object": "database13",
+          "arguments": {
+            "commandName": "ping",
+            "command": {
+              "ping": 1
+            }
+          }
+        }
+      ],
+      "expectWireMessages": [
+        {
+          "client": "client13",
+          "messages": [
+            {
+              "opcode": "OP_MSG",
+              "responseTo": 0,
+              "flags": [],
+              "command": {
+                "isMaster": 1,
+                "helloOk": true,
+                "backpressure": "2",
+                "compression": {
+                  "$$unsetOrMatches": []
+                },
+                "client": {
+                  "application": {
+                    "name": "handshakeTest"
+                  },
+                  "driver": {
+                    "name": {
+                      "$$type": "string"
+                    },
+                    "version": {
+                      "$$type": "string"
+                    }
+                  },
+                  "os": {
+                    "type": {
+                      "$$type": "string"
+                    },
+                    "name": {
+                      "$$unsetOrMatches": {
+                        "$$type": "string"
+                      }
+                    },
+                    "architecture": {
+                      "$$unsetOrMatches": {
+                        "$$type": "string"
+                      }
+                    },
+                    "version": {
+                      "$$unsetOrMatches": {
+                        "$$type": "string"
+                      }
+                    }
+                  },
+                  "platform": {
+                    "$$unsetOrMatches": {
+                      "$$type": "string"
+                    }
+                  },
+                  "env": {
+                    "$$unsetOrMatches": {
+                      "container": {
+                        "$$unsetOrMatches": {
+                          "runtime": "docker"
+                        }
+                      }
+                    }
+                  }
+                },
+                "$db": "admin",
+                "$readPreference": {
+                  "$$unsetOrMatches": {
+                    "mode": "primaryPreferred"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "description": "client.env.agent is reported alongside FaaS metadata",
+      "operations": [
+        {
+          "name": "createEntities",
+          "object": "testRunner",
+          "arguments": {
+            "entities": [
+              {
+                "client": {
+                  "id": "client14",
+                  "useMultipleMongoses": false,
+                  "uriOptions": {
+                    "appname": "handshakeTest"
+                  },
+                  "setHostEnvironment": {
+                    "CLAUDECODE": "1",
+                    "CLAUDE_CODE_ENTRYPOINT": null,
+                    "CURSOR_AGENT": null,
+                    "CODEX_SANDBOX": null,
+                    "CLINE_ACTIVE": null,
+                    "GEMINI_CLI": null,
+                    "AUGMENT_AGENT": null,
+                    "OPENCODE": null,
+                    "OPENCODE_CLIENT": null,
+                    "TRAE_AI_SHELL_ID": null,
+                    "GOOSE_TERMINAL": null,
+                    "GOOSE_AGENT": null,
+                    "AI_AGENT": null,
+                    "AWS_EXECUTION_ENV": "AWS_Lambda_java8",
+                    "AWS_REGION": "us-east-2"
+                  },
+                  "observeWireMessages": {
+                    "connections": [
+                      "application"
+                    ],
+                    "phases": [
+                      "handshake"
+                    ]
+                  }
+                }
+              },
+              {
+                "database": {
+                  "id": "database14",
+                  "client": "client14",
+                  "databaseName": "handshake-test"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "runCommand",
+          "object": "database14",
+          "arguments": {
+            "commandName": "ping",
+            "command": {
+              "ping": 1
+            }
+          }
+        }
+      ],
+      "expectWireMessages": [
+        {
+          "client": "client14",
+          "messages": [
+            {
+              "opcode": "OP_MSG",
+              "responseTo": 0,
+              "flags": [],
+              "command": {
+                "isMaster": 1,
+                "helloOk": true,
+                "backpressure": "2",
+                "compression": {
+                  "$$unsetOrMatches": []
+                },
+                "client": {
+                  "application": {
+                    "name": "handshakeTest"
+                  },
+                  "driver": {
+                    "name": {
+                      "$$type": "string"
+                    },
+                    "version": {
+                      "$$type": "string"
+                    }
+                  },
+                  "os": {
+                    "type": {
+                      "$$type": "string"
+                    },
+                    "name": {
+                      "$$unsetOrMatches": {
+                        "$$type": "string"
+                      }
+                    },
+                    "architecture": {
+                      "$$unsetOrMatches": {
+                        "$$type": "string"
+                      }
+                    },
+                    "version": {
+                      "$$unsetOrMatches": {
+                        "$$type": "string"
+                      }
+                    }
+                  },
+                  "platform": {
+                    "$$unsetOrMatches": {
+                      "$$type": "string"
+                    }
+                  },
+                  "env": {
+                    "name": "aws.lambda",
+                    "region": "us-east-2",
+                    "agent": "claude_code",
+                    "container": {
+                      "$$unsetOrMatches": {
+                        "runtime": "docker"
+                      }
+                    }
+                  }
+                },
+                "$db": "admin",
+                "$readPreference": {
+                  "$$unsetOrMatches": {
+                    "mode": "primaryPreferred"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

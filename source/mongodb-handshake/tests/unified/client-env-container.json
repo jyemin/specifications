@@ -1,0 +1,140 @@
+{
+  "description": "client-env-container",
+  "schemaVersion": "1.30",
+  "runOnRequirements": [
+    {
+      "minServerVersion": "4.4",
+      "auth": false,
+      "topologies": [
+        "single",
+        "replicaset",
+        "sharded"
+      ],
+      "compression": false,
+      "serverApi": false
+    }
+  ],
+  "createEntities": [
+    {
+      "client": {
+        "id": "client",
+        "useMultipleMongoses": false,
+        "uriOptions": {
+          "appname": "handshakeTest"
+        },
+        "setHostEnvironment": {
+          "KUBERNETES_SERVICE_HOST": "10.0.0.1"
+        },
+        "observeWireMessages": {
+          "connections": [
+            "application"
+          ],
+          "phases": [
+            "handshake"
+          ]
+        }
+      }
+    },
+    {
+      "database": {
+        "id": "database",
+        "client": "client",
+        "databaseName": "handshake-test"
+      }
+    }
+  ],
+  "tests": [
+    {
+      "description": "container metadata is nested in client.env, not a sibling of it",
+      "operations": [
+        {
+          "name": "runCommand",
+          "object": "database",
+          "arguments": {
+            "commandName": "ping",
+            "command": {
+              "ping": 1
+            }
+          }
+        }
+      ],
+      "expectWireMessages": [
+        {
+          "client": "client",
+          "messages": [
+            {
+              "opcode": "OP_MSG",
+              "responseTo": 0,
+              "flags": [],
+              "command": {
+                "isMaster": 1,
+                "helloOk": true,
+                "backpressure": "2",
+                "compression": {
+                  "$$unsetOrMatches": []
+                },
+                "client": {
+                  "application": {
+                    "name": "handshakeTest"
+                  },
+                  "driver": {
+                    "name": {
+                      "$$type": "string"
+                    },
+                    "version": {
+                      "$$type": "string"
+                    }
+                  },
+                  "os": {
+                    "type": {
+                      "$$type": "string"
+                    },
+                    "name": {
+                      "$$unsetOrMatches": {
+                        "$$type": "string"
+                      }
+                    },
+                    "architecture": {
+                      "$$unsetOrMatches": {
+                        "$$type": "string"
+                      }
+                    },
+                    "version": {
+                      "$$unsetOrMatches": {
+                        "$$type": "string"
+                      }
+                    }
+                  },
+                  "platform": {
+                    "$$unsetOrMatches": {
+                      "$$type": "string"
+                    }
+                  },
+                  "env": {
+                    "container": {
+                      "orchestrator": "kubernetes",
+                      "runtime": {
+                        "$$unsetOrMatches": "docker"
+                      }
+                    },
+                    "agent": {
+                      "$$unsetOrMatches": {
+                        "$$type": "string"
+                      }
+                    }
+                  }
+                },
+                "$db": "admin",
+                "$readPreference": {
+                  "$$unsetOrMatches": {
+                    "mode": "primaryPreferred"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
