@@ -1,0 +1,58 @@
+description: handshake-compression
+schemaVersion: '1.30'
+runOnRequirements:
+  - minServerVersion: '4.4'
+    auth: false
+    # A load-balanced deployment handshakes with hello and loadBalanced, and has no monitors.
+    topologies: [ single, replicaset, sharded ]
+    # The messages that the client writes change if the environment enables a server API version.
+    serverApi: false
+createEntities:
+  - client:
+      id: &client client
+      useMultipleMongoses: false
+      uriOptions:
+        appname: &appName handshakeTest
+        compressors: zlib
+      observeWireMessages:
+        connections: [application]
+        phases: [handshake]
+  - database:
+      id: &database database
+      client: *client
+      databaseName: handshake-test
+tests:
+  - description: hello requests compression and is itself never compressed
+    operations:
+      - name: runCommand
+        object: *database
+        arguments: { commandName: ping, command: { ping: 1 } }
+    expectWireMessages:
+      - client: *client
+        messages:
+          - opcode: OP_MSG
+            responseTo: 0
+            flags: []
+            command:
+              isMaster: 1
+              helloOk: true
+              backpressure: "2"
+              compression: [zlib]
+              client:
+                application: { name: *appName }
+                driver:
+                  name: { $$type: string }
+                  version: { $$type: string }
+                os:
+                  type: { $$type: string }
+                  name: { $$unsetOrMatches: { $$type: string } }
+                  architecture: { $$unsetOrMatches: { $$type: string } }
+                  version: { $$unsetOrMatches: { $$type: string } }
+                platform: { $$unsetOrMatches: { $$type: string } }
+                # env is absent on a plain host. /.dockerenv adds container.runtime, and an agent's environment variables add agent.
+                env:
+                  $$unsetOrMatches:
+                    container: { $$unsetOrMatches: { runtime: docker } }
+                    agent: { $$unsetOrMatches: { $$type: string } }
+              $db: admin
+              $readPreference: { $$unsetOrMatches: { mode: primaryPreferred } }
