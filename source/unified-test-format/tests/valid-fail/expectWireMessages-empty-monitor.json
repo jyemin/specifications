@@ -1,0 +1,57 @@
+{
+  "description": "expectWireMessages-empty-monitor",
+  "schemaVersion": "1.30",
+  "runOnRequirements": [
+    {
+      "topologies": [
+        "single",
+        "replicaset",
+        "sharded"
+      ]
+    }
+  ],
+  "createEntities": [
+    {
+      "client": {
+        "id": "client0",
+        "useMultipleMongoses": false,
+        "uriOptions": {
+          "heartbeatFrequencyMS": 500
+        },
+        "observeWireMessages": {
+          "connections": [
+            "monitor"
+          ],
+          "phases": [
+            "handshake",
+            "operation"
+          ]
+        }
+      }
+    }
+  ],
+  "tests": [
+    {
+      "description": "an empty list of messages fails when the monitor wrote messages, even with ignoreExtraMessages",
+      "operations": [
+        {
+          "name": "waitForWireMessages",
+          "object": "testRunner",
+          "arguments": {
+            "client": "client0",
+            "source": "monitor",
+            "count": 1
+          }
+        }
+      ],
+      "expectWireMessages": [
+        {
+          "client": "client0",
+          "source": "monitor",
+          "ignoreExtraMessages": true,
+          "messages": []
+        }
+      ]
+    }
+  ]
+}

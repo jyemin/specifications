@@ -1,0 +1,25 @@
+{
+  "description": "entity-client-observeWireMessages-connections-enum",
+  "schemaVersion": "1.30",
+  "createEntities": [
+    {
+      "client": {
+        "id": "client0",
+        "observeWireMessages": {
+          "connections": [
+            "foo"
+          ],
+          "phases": [
+            "handshake"
+          ]
+        }
+      }
+    }
+  ],
+  "tests": [
+    {
+      "description": "foo",
+      "operations": []
+    }
+  ]
+}

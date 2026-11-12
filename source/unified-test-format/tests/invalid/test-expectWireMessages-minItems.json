@@ -1,0 +1,11 @@
+{
+  "description": "test-expectWireMessages-minItems",
+  "schemaVersion": "1.30",
+  "tests": [
+    {
+      "description": "foo",
+      "operations": [],
+      "expectWireMessages": []
+    }
+  ]
+}

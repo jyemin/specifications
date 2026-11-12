@@ -1,0 +1,28 @@
+{
+  "description": "waitForWireMessages-client-not-observed",
+  "schemaVersion": "1.30",
+  "createEntities": [
+    {
+      "client": {
+        "id": "client0",
+        "useMultipleMongoses": false
+      }
+    }
+  ],
+  "tests": [
+    {
+      "description": "waitForWireMessages is an error for a client that does not specify observeWireMessages",
+      "operations": [
+        {
+          "name": "waitForWireMessages",
+          "object": "testRunner",
+          "arguments": {
+            "client": "client0",
+            "source": "application",
+            "count": 1
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+description: "entity-client-observeWireMessages-type"
+
+schemaVersion: "1.30"
+
+createEntities:
+  - client:
+      id: &client0 "client0"
+      observeWireMessages: 0
+
+tests:
+  - description: "foo"
+    operations: []

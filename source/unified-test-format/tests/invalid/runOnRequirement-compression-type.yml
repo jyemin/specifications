@@ -1,0 +1,10 @@
+description: runOnRequirement-compression-type
+
+schemaVersion: '1.30'
+
+runOnRequirements:
+  - compression: foo
+
+tests:
+  - description: foo
+    operations: []

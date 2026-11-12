@@ -1,0 +1,30 @@
+{
+  "description": "expectedWireMessage-flags-items",
+  "schemaVersion": "1.30",
+  "createEntities": [
+    {
+      "client": {
+        "id": "client0"
+      }
+    }
+  ],
+  "tests": [
+    {
+      "description": "foo",
+      "operations": [],
+      "expectWireMessages": [
+        {
+          "client": "client0",
+          "messages": [
+            {
+              "opcode": "OP_MSG",
+              "flags": [
+                0
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

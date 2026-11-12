@@ -1,0 +1,14 @@
+description: "entity-client-observeWireMessages-connections-items"
+
+schemaVersion: "1.30"
+
+createEntities:
+  - client:
+      id: &client0 "client0"
+      observeWireMessages:
+        connections: [ 0 ]
+        phases: [ handshake ]
+
+tests:
+  - description: "foo"
+    operations: []

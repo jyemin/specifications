@@ -1,0 +1,41 @@
+{
+  "description": "expectWireMessages-client-not-observed",
+  "schemaVersion": "1.30",
+  "createEntities": [
+    {
+      "client": {
+        "id": "client0"
+      }
+    },
+    {
+      "database": {
+        "id": "database0",
+        "client": "client0",
+        "databaseName": "expectWireMessages-client-not-observed"
+      }
+    }
+  ],
+  "tests": [
+    {
+      "description": "expectWireMessages fails if the client does not specify observeWireMessages",
+      "operations": [
+        {
+          "name": "runCommand",
+          "object": "database0",
+          "arguments": {
+            "commandName": "ping",
+            "command": {
+              "ping": 1
+            }
+          }
+        }
+      ],
+      "expectWireMessages": [
+        {
+          "client": "client0",
+          "messages": []
+        }
+      ]
+    }
+  ]
+}

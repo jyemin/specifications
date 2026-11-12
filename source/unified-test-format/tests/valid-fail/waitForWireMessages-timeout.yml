@@ -1,0 +1,19 @@
+description: "waitForWireMessages-timeout"
+
+schemaVersion: "1.30"
+
+createEntities:
+  - client:
+      id: &client0 client0
+      useMultipleMongoses: false
+      observeWireMessages:
+        connections: [ application ]
+        phases: [ handshake, operation ]
+
+tests:
+  - description: "waitForWireMessages fails the test when the messages are not written within 10 seconds"
+    operations:
+      # The client has run no operation, so it has opened no application connection and written nothing.
+      - name: waitForWireMessages
+        object: testRunner
+        arguments: { client: *client0, source: application, count: 1 }

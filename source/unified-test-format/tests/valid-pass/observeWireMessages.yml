@@ -1,0 +1,149 @@
+description: "observeWireMessages"
+
+schemaVersion: "1.30"
+
+runOnRequirements:
+  # The messages that the client writes change if the environment enables compression or a server API version.
+  - compression: false
+    serverApi: false
+
+createEntities:
+  - client:
+      id: &client0 client0
+      uriOptions:
+        # A single connection, so that the order of the messages is deterministic.
+        maxPoolSize: 1
+      # Only the messages written after the handshake are observed, so that this test does not depend on the authentication
+      # mechanism or on the details of the handshake.
+      observeWireMessages:
+        connections: [ application ]
+        phases: [ operation ]
+      # Unsetting a variable is accepted and has no other effect on this test.
+      setHostEnvironment:
+        AWS_EXECUTION_ENV: null
+  - database:
+      id: &database0 database0
+      client: *client0
+      databaseName: &databaseName observeWireMessages
+  - collection:
+      id: &collection0 collection0
+      database: *database0
+      collectionName: &collectionName test
+
+initialData:
+  - collectionName: *collectionName
+    databaseName: *databaseName
+    documents: []
+
+tests:
+  - description: "a message written after the handshake is recorded and matched strictly"
+    operations:
+      - name: runCommand
+        object: *database0
+        arguments:
+          commandName: ping
+          command: { ping: 1 }
+      - name: waitForWireMessages
+        object: testRunner
+        arguments:
+          client: *client0
+          source: application
+          count: 1
+    expectWireMessages:
+      - client: *client0
+        source: application
+        messages:
+          - opcode: OP_MSG
+            responseTo: 0
+            flags: []
+            # command is shorthand for a single section of kind 0. Matching is strict, so every field that the driver adds to
+            # the command has to be accounted for. These vary between drivers and deployments.
+            command: &pingCommand
+              ping: 1
+              $db: *databaseName
+              lsid: { $$unsetOrMatches: { $$type: object } }
+              $clusterTime: { $$unsetOrMatches: { $$type: object } }
+              $readPreference: { $$unsetOrMatches: { $$type: object } }
+
+  - description: "the sections of a message can be written out instead of using command"
+    operations:
+      - name: runCommand
+        object: *database0
+        arguments:
+          commandName: ping
+          command: { ping: 1 }
+    expectWireMessages:
+      - client: *client0
+        messages:
+          - opcode: OP_MSG
+            responseTo: 0
+            flags: []
+            sections:
+              - kind: 0
+                body: *pingCommand
+
+  - description: "ignoreExtraMessages allows messages after the expected ones"
+    operations:
+      - name: runCommand
+        object: *database0
+        arguments:
+          commandName: ping
+          command: { ping: 1 }
+      - name: runCommand
+        object: *database0
+        arguments:
+          commandName: ping
+          command: { ping: 1 }
+      - name: waitForWireMessages
+        object: testRunner
+        arguments:
+          client: *client0
+          source: application
+          count: 2
+    expectWireMessages:
+      - client: *client0
+        ignoreExtraMessages: true
+        messages:
+          - opcode: OP_MSG
+            responseTo: 0
+            flags: []
+            command: *pingCommand
+
+  - description: "no message is recorded if the client writes none after the handshake"
+    operations: []
+    expectWireMessages:
+      - client: *client0
+        messages: []
+
+  - description: "the sections of a message can be listed in any order"
+    operations:
+      # More than one document in an insert has to be sent in a payload type 1 section, so the message has two sections.
+      - name: insertMany
+        object: *collection0
+        arguments:
+          documents: [ { _id: 1 }, { _id: 2 } ]
+      - name: waitForWireMessages
+        object: testRunner
+        arguments:
+          client: *client0
+          source: application
+          count: 1
+    expectWireMessages:
+      - client: *client0
+        source: application
+        messages:
+          - opcode: OP_MSG
+            responseTo: 0
+            flags: []
+            # The OP_MSG spec allows the sections in any order, and the order here does not have to be the order in which the
+            # driver writes them.
+            sections:
+              - kind: 1
+                identifier: documents
+                documents: [ { _id: 1 }, { _id: 2 } ]
+              - kind: 0
+                body:
+                  # Other fields that the command has, such as ordered, vary between drivers.
+                  $$matchAsRoot:
+                    insert: *collectionName
+                    $db: *databaseName

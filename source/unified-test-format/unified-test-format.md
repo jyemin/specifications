@@ -365,6 +365,24 @@ The structure of this object is as follows:
     [authenticationMechanisms](https://www.mongodb.com/docs/manual/reference/parameters/#mongodb-parameter-param.authenticationMechanisms)
     server parameter. If this field is omitted, there is no authentication mechanism requirement.
 
+<span id="runOnRequirement_compression"></span>
+
+- `compression`: Optional boolean. If true, the tests MUST only run if the test suite's connection string enables wire
+    compression, that is, it specifies the `compressors` URI option with at least one compressor. If false, tests MUST
+    NOT run if it does. If this field is omitted, there is no compression requirement. The requirement describes the
+    test environment, and a client entity can still specify `compressors` in its `uriOptions`. A client that compresses
+    writes different messages, which matters to a test that asserts on
+    [the messages that a client writes](#test_expectWireMessages).
+
+<span id="runOnRequirement_serverApi"></span>
+
+- `serverApi`: Optional boolean. If true, the tests MUST only run if the test suite's environment declares a
+    [server API version](#serverapi) for the clients that the test runner creates, for example because the server
+    requires one. If false, tests MUST NOT run if it does. If this field is omitted, there is no server API requirement.
+    The requirement describes the test environment, and a client entity can still specify its own `serverApi`. A client
+    that declares a server API version handshakes with `hello` and adds `apiVersion` to every command, which matters to
+    a test that asserts on [the messages that a client writes](#test_expectWireMessages).
+
 - `csfle`: Optional object or boolean. If not false, tests MUST only run if the driver and server support Client-Side
     Field Level Encryption. CSFLE is supported when all of the following are true:
 
@@ -530,6 +548,69 @@ The structure of this object is as follows:
             tracing spans.
             - If `true`, the test runner SHOULD capture detailed command payload information in tracing spans.
             - If `false` or omitted, the test runner SHOULD exclude command payload details.
+
+    <span id="entity_client_observeWireMessages"></span>
+
+    - `observeWireMessages`: Optional object. Enables recording of the messages that this client writes to the server, so
+        that they can be asserted with [test.expectWireMessages](#test_expectWireMessages) and waited for with
+        [waitForWireMessages](#waitforwiremessages). Messages written on connections or in phases that are not selected
+        MUST be ignored by this client's recorder and SHOULD NOT be included in
+        [test.expectWireMessages](#test_expectWireMessages) for this client.
+
+        The structure of this object is as follows:
+
+        - `connections`: Required array of one or more strings. The kinds of connection to record messages from. Each string
+            MUST be one of the following:
+
+            - `application`: The connections that the client uses to execute operations, i.e. the connections managed by the
+                [connection pool](../connection-monitoring-and-pooling/connection-monitoring-and-pooling.md).
+            - `monitor`: The connection that a [server monitor](../server-discovery-and-monitoring/server-monitoring.md) uses
+                for its handshake and for the `hello` or legacy hello commands that follow, whether the monitor is streaming
+                or polling.
+            - `rtt`: The dedicated connection that a server monitor uses to
+                [measure RTT](../server-discovery-and-monitoring/server-monitoring.md#measuring-rtt) while it is streaming. A
+                client does not open this connection when it is not streaming.
+
+        - `phases`: Required array of one or more strings. The phases of a connection's life to record messages from. Each
+            string MUST be one of the following:
+
+            - `handshake`: The messages that the client writes on a connection from the time the connection is opened until it
+                is ready for use. These are the [MongoDB Handshake](../mongodb-handshake/handshake.md) and, for application
+                connections, authentication.
+            - `operation`: The messages that the client writes on a connection after that. For `monitor` and `rtt` connections
+                these are the `hello` or legacy hello commands that the monitors send.
+
+        Test runners MUST begin recording before the client entity is constructed, so that the messages written on the first
+        connections are not missed.
+
+        Test runners MUST associate each recorded message with the address of the server that the connection was opened to.
+
+    <span id="entity_client_setHostEnvironment"></span>
+
+    - `setHostEnvironment`: Optional object where the keys are the names of environment variables and the values are
+        either a string or null. The variables describe the host that the driver is running on. While the client entity is
+        being constructed, the test runner MUST make the driver observe each variable with the given value, and MUST make
+        the driver observe a variable whose value is null as unset, regardless of the environment of the test process.
+
+        Drivers inspect the environment of the host and change what they do according to what they find. This option exists
+        so that a test can choose what the driver finds. It applies to the detection of the host environment that the
+        following specifications describe, such as FaaS platforms, containers and AI agents:
+
+        - the `client.env` field of the [MongoDB Handshake](../mongodb-handshake/handshake.md#client-env), and
+        - whether the server monitor uses the streaming protocol when
+            [serverMonitoringMode](../server-discovery-and-monitoring/server-monitoring.md#servermonitoringmode) is `auto`.
+
+        The option is not required to affect any other behavior of the driver, such as how it obtains credentials.
+
+        If the driver reads these variables at any later time, such as each time it decides how to monitor a server, the
+        test runner MUST keep the specified values in effect for as long as the client is open. Otherwise, the test runner
+        MAY restore the previous environment as soon as the client entity has been constructed. In either case the
+        specified values MUST NOT be visible to any other client entity, to the internal MongoClient, or to any other
+        test.
+
+        This specification does not prescribe how the test runner makes the driver observe the specified values. For
+        example, a test runner MAY replace the driver's internal environment lookup, or MAY modify the environment of the
+        test process if the driver provides no other way.
 
     - `serverApi`: Optional [serverApi](#serverapi) object.
 
@@ -781,6 +862,18 @@ The structure of this object is as follows:
 
     Tests SHOULD NOT specify multiple [expectedLogMessagesForClient](#expectedlogmessagesforclient) objects for a single
     client entity.
+
+<span id="test_expectWireMessages"></span>
+
+- `expectWireMessages`: Optional array of one or more [expectedWireMessagesForClient](#expectedwiremessagesforclient)
+    objects. For one or more clients, a list of the messages that the client is expected to have written to the server,
+    in the order in which they were written.
+
+    If a driver only supports observing the messages of all clients together, the test runner SHOULD associate each
+    recorded message with a client in order to perform these assertions.
+
+    Tests SHOULD NOT specify multiple [expectedWireMessagesForClient](#expectedwiremessagesforclient) objects for a single
+    client entity with the same `source`, or with no `source`, because they would assert on the same messages.
 
 <span id="expectTracingMessages"></span>
 
@@ -1309,6 +1402,152 @@ The structure of each object is as follows:
     Note that for drivers that do not implement structured logging, this requires designing logging internals such that
     data is first gathered in a structured form (e.g. a document or hashmap) which can be intercepted for testing
     purposes.
+
+<span id="expectedWireMessagesForClient"></span>
+
+#### expectedWireMessagesForClient
+
+A list of messages that are expected to have been written to the server by a client while executing
+[operations](#test_operations).
+
+The structure of each object is as follows:
+
+- `client`: Required string. Client entity for which the messages are expected to have been written. See
+    [commonOptions_client](#commonOptions_client). The client entity MUST specify
+    [observeWireMessages](#entity_client_observeWireMessages), and the test runner MUST raise an error if it does not.
+
+- `source`: Optional string. One of the strings allowed in the `connections` field of
+    [observeWireMessages](#entity_client_observeWireMessages). If specified, the test runner MUST consider only the
+    messages that were written on connections of this kind. If not specified, the test runner MUST consider all of the
+    recorded messages, and the client entity MUST NOT select `monitor` or `rtt` in
+    [observeWireMessages](#entity_client_observeWireMessages); the test runner MUST raise an error otherwise.
+
+    If `source` is `application`, or is not specified, the messages are one list, in the order in which they were written.
+    If the client has more than one connection of that kind, the order of the messages written on different connections
+    is unspecified, so tests SHOULD arrange for the client to use only one connection, for example by setting
+    `maxPoolSize` to 1 in [uriOptions](#entity_client).
+
+    If `source` is `monitor` or `rtt`, the test runner evaluates this object once for each server that the client
+    monitors, using only the messages that the client wrote to that server on connections of that kind, in the order in
+    which they were written. The messages written to different servers are never compared with each other, so their
+    relative order does not matter. For a client that monitors one server this is the same as a single list.
+
+    The servers are those in the client's topology description, such as the one that
+    [recordTopologyDescription](#recordtopologydescription) retrieves, when the assertion is evaluated. Before
+    evaluating, the test runner MUST wait until the type of every server in the description is known, that is, not
+    `Unknown`, and MUST cause a test failure if that does not happen within 10 seconds. A client adds the members that a
+    server reports to its topology description when it processes that server's description, so once no server is
+    `Unknown` the description lists every server that the client monitors. The test runner MUST cause a test failure if
+    the description lists no servers.
+
+- `messages`: Required array of [expectedWireMessage](#expectedwiremessage) objects. List of messages, which are
+    expected to have been written (in this order) while executing [operations](#test_operations). If the array is empty,
+    the test runner MUST assert that no messages were recorded, whether or not `ignoreExtraMessages` is true. Otherwise,
+    the test runner MUST assert that the messages are an exact match, i.e. that the expected and actual message counts
+    are the same, unless `ignoreExtraMessages` is true.
+
+- `ignoreExtraMessages`: Optional boolean. Specifies how the `messages` array is matched against the recorded messages.
+    If `false`, recorded messages after all specified messages have matched MUST cause a test failure; if `true`,
+    recorded messages after all specified messages have been matched MUST NOT cause a test failure. Defaults to `false`.
+
+    Monitors continue to write messages for as long as the client is open, so a test that asserts on `monitor` or `rtt`
+    messages MUST set this to true. The first messages written on a connection are deterministic, but the total number
+    of messages written when the assertion is made is not. A test that asserts that a monitor or rtt connection wrote no
+    messages at all, such as for a topology that is not monitored, uses an empty `messages` array.
+
+<span id="expectedWireMessage"></span>
+
+#### expectedWireMessage
+
+A message that is expected to have been written to the server while executing the test's operations.
+
+An expected message describes a message as it appears on the wire. The test runner MUST obtain the actual message by
+decoding the bytes that the client wrote to the connection, and MUST NOT construct it from the driver's own
+representation of the message. See [rationale_wireMessages](#rationale_wireMessages).
+
+The decoded form of a message depends on its opcode. Every decoded message has these fields:
+
+- `opcode`: Required string. One of `OP_MSG`, `OP_QUERY`, or `OP_COMPRESSED`. Test runners for drivers that never write
+    an `OP_QUERY` message need not be able to decode it.
+
+- `responseTo`: Required integer. The `responseTo` field of the message header, which is 0 for every request that a
+    client writes. The `requestId` field of the header is arbitrary and is not part of the decoded form.
+
+The decoded form of an `OP_MSG` message has these additional fields:
+
+- `flags`: Required array of strings. The names of the flag bits that are set, in ascending order of bit position. The
+    names are `checksumPresent` (bit 0), `moreToCome` (bit 1), and `exhaustAllowed` (bit 16), as defined in the
+    [OP_MSG](../message/OP_MSG.md) spec. A set bit that has no name there is represented as `unknownBit` followed by its
+    position, e.g. `unknownBit5`. The array is empty if no bit is set.
+
+- `sections`: Required array of objects (unless `command` is used), one for each section of the message. A section with
+    a payload type of 0 is represented as `{ kind: 0, body: <document> }`. A section with a payload type of 1 is
+    represented as `{ kind: 1, identifier: <string>, documents: [<document>, ...] }`. A section with a payload type of
+    3, the telemetry context that a driver MAY add to a request, is represented as `{ kind: 3, body: <document> }`.
+
+    The [OP_MSG](../message/OP_MSG.md) spec allows the sections of a message in any order, so the order of the objects in
+    this array is not significant, and the test runner MUST match the sections without regard to it. The test runner
+    MUST cause a test failure unless the array and the sections of the message have the same number of elements and each
+    object in the array matches a different section of the message. An object can only match a section of the same
+    `kind`, and for `kind` 1 of the same `identifier`. The order of the `documents` within a `kind` 1 section is
+    significant, because it is the order of the data. A message that has a section that the test does not list, such as
+    a telemetry section when the driver is configured to propagate trace context, does not match.
+
+- `checksum`: Integer. Present only if the `checksumPresent` flag is set, in which case it is the unsigned 32-bit value
+    in the last four bytes of the message, which are not part of any section. The test runner need not verify it. The
+    [OP_MSG](../message/OP_MSG.md) spec reserves the checksum and no driver is expected to write one, so a test omits
+    both the flag and this field, which asserts that the message has none. Bytes at the end of a message that does not
+    have the flag are not a checksum, and make the message not well formed.
+
+The decoded form of an `OP_QUERY` message has these additional fields:
+
+- `flags`: Required array of strings. The names of the flag bits that are set, in ascending order of bit position:
+    `tailableCursor` (bit 1), `secondaryOk` (bit 2), `oplogReplay` (bit 3), `noCursorTimeout` (bit 4), `awaitData` (bit
+    5), `exhaust` (bit 6), and `partial` (bit 7). Any other set bit is represented as `unknownBit` followed by its
+    position.
+- `fullCollectionName`: Required string.
+- `numberToSkip`: Required integer.
+- `numberToReturn`: Required integer.
+- `query`: Required document (unless `command` is used).
+- `returnFieldsSelector`: Document. Present only if the message contains one.
+
+The decoded form of an `OP_COMPRESSED` message has these additional fields, instead of those of an `OP_MSG` or
+`OP_QUERY` message:
+
+- `originalOpcode`: Required string. Either `OP_MSG` or `OP_QUERY`.
+- `uncompressedSize`: Required integer. The `uncompressedSize` field of the message, which excludes the header.
+- `compressorId`: Required integer. The `compressorId` field of the message, as defined in the
+    [OP_COMPRESSED](../compression/OP_COMPRESSED.md#compressor-ids) spec.
+- `message`: Required object. The decoded form of the decompressed message, without its `opcode` and `responseTo`
+    fields.
+
+An expected message has the same structure as the decoded form, with these differences:
+
+- The value of `responseTo`, `checksum`, `fullCollectionName`, `numberToSkip`, `numberToReturn`, `uncompressedSize`, or
+    `compressorId` MAY be a [special operator](#special-operators-for-matching-assertions), such as `$$type`. The
+    documents in an expected message (`body`, `documents`, `query`, `returnFieldsSelector`, and `command`) are matched
+    according to [Evaluating Matches](#evaluating-matches), and so MAY contain special operators.
+
+- `command`: Optional document. This is shorthand for an expected message that has a single `sections` element with a
+    `kind` of 0 and this document as its `body`, if the opcode is `OP_MSG`, or for an expected `query` of this document,
+    if the opcode is `OP_QUERY`. It MAY also be used in the expected `message` of an `OP_COMPRESSED` message. It MUST
+    NOT be combined with `sections` or `query`.
+
+The test runner MUST match each expected message against the corresponding actual message according to
+[Evaluating Matches](#evaluating-matches), and MUST NOT treat the actual message, or any document or array within it, as
+a root-level document. The actual message therefore MUST NOT contain a field or key that the expected message omits, and
+an expected message that omits a field of the decoded form, such as `responseTo` or `flags`, will not match. A test can
+use `$$matchAsRoot` to allow additional keys in a document. This differs from [expectedLogMessage](#expectedlogmessage),
+where the data of a log message is a root-level document. See
+[rationale_wireMessagesStrict](#rationale_wireMessagesStrict).
+
+Because matching is strict, a test has to account for the fields that the driver adds to a command, such as `$db`,
+`lsid`, `$clusterTime`, and `$readPreference`, or it will not match. A test can match fields that vary between drivers,
+topologies, or runs with `$$exists`, `$$unsetOrMatches`, or `$$type`.
+
+Messages are not redacted. The `payload` of a SASL command, a `speculativeAuthenticate` document, and any other
+credential-derived value appear exactly as the client wrote them. See
+[rationale_wireMessagesAuth](#rationale_wireMessagesAuth).
 
 #### collectionOrDatabaseOptions
 
@@ -2470,6 +2709,40 @@ For example, the following instructs the test runner to assert that a single Poo
     count: 1
 ```
 
+#### waitForWireMessages
+
+The `waitForWireMessages` operation instructs the test runner to wait until the specified MongoClient has written a
+given number of messages on connections of a given kind. Note that this includes any messages written before the
+`waitForWireMessages` operation started.
+
+If the `waitForWireMessages` operation is not satisfied after 10 seconds, this operation MUST cause a test failure.
+
+The following arguments are supported:
+
+- `client`: Required string. Client entity whose messages the runner will be waiting for. The client entity MUST specify
+    [observeWireMessages](#entity_client_observeWireMessages), and the test runner MUST raise an error if it does not.
+- `source`: Required string. One of the strings allowed in the `connections` field of
+    [observeWireMessages](#entity_client_observeWireMessages). Only the messages written on connections of this kind are
+    counted. `source` SHOULD be a value that was included in the `client`'s `observeWireMessages`.
+- `count`: Required integer. The number of messages to wait for before resuming execution of subsequent operations. If
+    `source` is `monitor` or `rtt`, the operation waits until `count` messages have been written to every server that
+    the client monitors, instead of `count` messages in total. The servers are determined as described in
+    [expectedWireMessagesForClient](#expectedwiremessagesforclient), and the 10 seconds include the time spent waiting
+    for the type of every server to be known.
+
+Monitors write messages on their own threads, so a test that asserts on `monitor` or `rtt` messages needs this operation
+to know that the messages it asserts on have been written. For example, the following instructs the test runner to wait
+until the monitor of every server has written its handshake and its first `hello`:
+
+```yaml
+- name: waitForWireMessages
+  object: testRunner
+  arguments:
+    client: *client0
+    source: monitor
+    count: 2
+```
+
 #### recordTopologyDescription
 
 The `recordTopologyDescription` operation instructs the test runner to retrieve the specified MongoClient's current
@@ -3065,6 +3338,11 @@ is specified for any client entities. If the topology type is `LoadBalanced`, cl
 the appropriate load balancer connection string as discussed in
 [useMultipleMongoses](#entity_client_useMultipleMongoses).
 
+If [setHostEnvironment](#entity_client_setHostEnvironment) is specified for a client entity, the test runner MUST apply
+it when creating that entity. For each client entity where [observeWireMessages](#entity_client_observeWireMessages) has
+been specified, the test runner MUST begin recording the messages that the client writes before creating the client, as
+described there. Messages written by the internal MongoClient are not recorded.
+
 If the test might execute a transaction against a sharded deployment, the test runner MUST advance the cluster time of
 any session entities created during the test using the cluster time collected from processing
 [initialData](#initialData). See
@@ -3102,6 +3380,9 @@ runner MUST consider this test to have failed.
 
 If any event listeners were enabled on any client entities, the test runner MUST now disable those event listeners.
 
+If wire message recording was enabled for any client entities, the test runner MUST now stop recording, or otherwise
+ensure that messages written after this point are not considered by the assertions below.
+
 If any fail points were configured, the test runner MUST now disable those fail points (on the same server) to avoid
 spurious failures in subsequent tests. For any fail points configured using [targetedFailPoint](#targetedfailpoint), the
 test runner MUST disable the fail point on the same mongos server on which it was originally configured. See
@@ -3111,6 +3392,25 @@ If [test.expectEvents](#test_expectEvents) is specified, for each object therein
 number and sequence of expected events match the number and sequence of actual events observed on the specified client.
 If the list of expected events is empty, the test runner MUST assert that no events were observed on the client. The
 process for matching events is described in [expectedEvent](#expectedevent).
+
+For each client entity that specifies [observeWireMessages](#entity_client_observeWireMessages), the test runner MUST
+decode every message that it recorded for the client, that is, every message that `observeWireMessages` selects, whether
+or not the test asserts on it, and MUST consider this test to have failed if any message is not well formed. Messages
+that are not selected are not recorded, and so are not checked. A message is not well formed if:
+
+- the `messageLength` in its header is not the number of bytes that the client wrote;
+- its opcode is not one that the test runner can decode;
+- a section, or a document within a section, does not end where its length says it does, or any bytes remain after the
+    last section;
+- it is an `OP_MSG` message, or the message inside an `OP_COMPRESSED` message, that does not have exactly one section
+    with a payload type of 0, that has two sections with a payload type of 1 and the same identifier, or that has more
+    than one section with a payload type of 3, which the [OP_MSG](../message/OP_MSG.md) spec does not allow; or
+- it is an `OP_COMPRESSED` message and its `uncompressedSize` is not the size of the decompressed message, or the test
+    runner cannot decompress it.
+
+If [test.expectWireMessages](#test_expectWireMessages) is specified, for each object therein the test runner MUST assert
+that the number and sequence of expected messages match the number and sequence of actual messages that were recorded on
+the specified client, as described in [expectedWireMessagesForClient](#expectedwiremessagesforclient).
 
 If [test.outcome](#test_outcome) is specified, for each [collectionData](#collectiondata) therein the test runner MUST
 assert that the collection contains exactly the expected data. The test runner MUST query each collection using the
@@ -3433,6 +3733,92 @@ is not possible to anticipate the command monitoring output and perform the appr
 have restricted use of this property to situations where authentication is disabled on the server. This allows tests to
 explicitly test sensitive commands via the `runCommand` helper.
 
+<span id="rationale_wireMessages"></span>
+
+### Why do wire message assertions decode the bytes that were written?
+
+[Command monitoring](../command-logging-and-monitoring/command-logging-and-monitoring.md) events, and the log messages
+derived from them, are built by the driver from the command it intends to send. They cannot show how a message was
+encoded or compressed, and command monitoring does not report the handshake or the commands that monitors send at all.
+Bugs in those places have gone unnoticed because no test could observe them: a `hello` that was compressed although the
+[compression](../compression/OP_COMPRESSED.md) spec forbids it, a field that was written at the wrong level of the
+handshake's `client` document, and an authentication exchange that used `OP_QUERY` instead of `OP_MSG`.
+
+Observing the bytes that are handed to the socket, and decoding them independently of the code that built them, means
+that a bug in building, framing, or compressing a message is visible to a test. For example, an `OP_MSG` message with an
+unexpected extra section would be invisible to any assertion on the command document alone. For the same reason test
+runners SHOULD decode messages, and decompress `OP_COMPRESSED` messages, without using the driver's own code for doing
+so.
+
+<span id="rationale_wireMessagesStrict"></span>
+
+### Why are expected messages not matched as root-level documents?
+
+Most of the bugs that these assertions are meant to catch are of the form "the client wrote something that the
+specification does not allow": an extra field, a field at the wrong level, an extra section, a flag that should not be
+set. Matching an expected message as a root-level document would permit all of them. Strict matching makes tests more
+verbose, because they have to account for fields that the driver adds, but that is the intent.
+
+<span id="rationale_wireMessagesSectionOrder"></span>
+
+### Why does the order of the sections not matter?
+
+The OP_MSG specification says that sections may exist in any order, and nothing in it or in the server requires, for
+example, that a document sequence come last. A driver that writes the sections of a bulk write, or the telemetry
+section, in a different order from another driver is conforming. Matching the array in order would fail such a driver
+for a reason that is not a bug. Tests still detect an extra, missing or malformed section, because every section has to
+be matched.
+
+<span id="rationale_wireMessagesPerServer"></span>
+
+### Why do monitor and rtt messages apply to each server?
+
+A client of a replica set or a sharded cluster monitors every server, each over its own connection, and the order of the
+messages written on different connections is unspecified. One list of expected messages would therefore not be
+deterministic. Limiting the client to one server with `directConnection` would conflict with the
+[URI Options](../uri-options/uri-options.md#directconnection-uri-option-with-multiple-seeds-or-srv-uri) spec, which
+requires an error for multiple seeds, so the test runner would have to rewrite the connection string and choose a
+member. It would also change what the test observes: the
+[Server Selection](../server-selection/server-selection.md#topology-type-single) spec requires a client that is
+connected directly to a replica set member to add `$readPreference` with a mode of `primaryPreferred` to operations
+whose read preference is primary, which a client that discovers the replica set does not send.
+
+Evaluating the messages of each server separately avoids both problems, and for a client that monitors one server it is
+the same as one list, so there is nothing to choose. A monitor writes the messages to its server in a fixed order, and
+the monitors of all servers are expected to behave in the same way. The test runner can tell when it has seen every
+server because the topology description lists them. This does not extend to `application` connections, because the
+number of connections in a pool is not determined by the number of servers.
+
+<span id="rationale_wireMessagesAuth"></span>
+
+### Why are wire messages not redacted, and how do they interact with authentication?
+
+[observeSensitiveCommands](#entity_client_observeSensitiveCommands) cannot be true when authentication is enabled
+because the events that the client publishes always begin with authentication commands, and their form depends on the
+mechanism. Wire messages differ in that the authentication exchange is exactly what some tests need to assert on, such
+as that a speculative `saslStart` carries the expected options and is followed by the expected `saslContinue`. These
+messages are therefore recorded as written, and tests SHOULD match the authentication payloads they contain with
+operators such as `$$type`, because they vary from run to run.
+
+A test that does not assert on authentication SHOULD set [auth](#runOnRequirement_auth) to false in its
+`runOnRequirements`, so that the authentication exchange does not appear among the messages it asserts on. A test that
+does assert on it SHOULD set `auth` to true. Since messages are not redacted, the credentials of the test environment
+appear in them, and test runners SHOULD NOT write recorded messages anywhere except in the output of a failed test.
+
+<span id="rationale_setHostEnvironment"></span>
+
+### Why does the test format have a way to set the host environment?
+
+A driver decides several things from variables such as `AWS_EXECUTION_ENV` and `KUBERNETES_SERVICE_HOST`: the
+handshake's `client.env` document, and whether the monitor streams or polls. A test cannot otherwise choose which of
+these variables the driver sees. Without `setHostEnvironment`, a test of either behavior would depend on the environment
+it happens to run in, and the cases that the specifications describe (for example, a client that has both FaaS and
+container metadata, or a client that polls because it runs on a FaaS platform) could not be expressed as unified tests.
+
+The option is named for the host environment, not for the handshake, because the same detection drives more than one
+behavior. It does not promise that arbitrary variables reach every part of the driver, so a driver needs to apply the
+specified values only where it inspects the host environment.
+
 ## Breaking Changes
 
 This section is reserved for future use. Any breaking changes to the test format SHOULD be described here in detail for
@@ -3474,6 +3860,14 @@ operations and arguments. This is a concession until such time that better proce
 other specs *and* collating spec changes developed in parallel or during the same release cycle.
 
 ## Changelog
+
+- 2026-11-10: **Schema version 1.30.**
+
+    Added the `observeWireMessages` and `setHostEnvironment` client entity options, the `expectWireMessages` test field,
+    and the `waitForWireMessages` special test operation, for asserting on the messages that a client writes to the
+    server, including the connection handshake, authentication, and the commands sent by server monitors. Added the
+    `compression` and `serverApi` `runOnRequirement` fields, so that a test can declare that it assumes an environment
+    that enables neither.
 
 - 2026-10-29: Require that fail points not be configured through clients with timeout options.
 

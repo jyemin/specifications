@@ -1,0 +1,386 @@
+{
+  "description": "expectWireMessages-mismatch",
+  "schemaVersion": "1.30",
+  "createEntities": [
+    {
+      "client": {
+        "id": "client0",
+        "uriOptions": {
+          "maxPoolSize": 1
+        },
+        "observeWireMessages": {
+          "connections": [
+            "application"
+          ],
+          "phases": [
+            "operation"
+          ]
+        }
+      }
+    },
+    {
+      "database": {
+        "id": "database0",
+        "client": "client0",
+        "databaseName": "expectWireMessages-mismatch"
+      }
+    }
+  ],
+  "tests": [
+    {
+      "description": "a key that was written but is not expected fails the match",
+      "operations": [
+        {
+          "name": "runCommand",
+          "object": "database0",
+          "arguments": {
+            "commandName": "ping",
+            "command": {
+              "ping": 1
+            }
+          }
+        }
+      ],
+      "expectWireMessages": [
+        {
+          "client": "client0",
+          "messages": [
+            {
+              "opcode": "OP_MSG",
+              "responseTo": 0,
+              "flags": [],
+              "command": {
+                "ping": 1,
+                "lsid": {
+                  "$$unsetOrMatches": {
+                    "$$type": "object"
+                  }
+                },
+                "$clusterTime": {
+                  "$$unsetOrMatches": {
+                    "$$type": "object"
+                  }
+                },
+                "$readPreference": {
+                  "$$unsetOrMatches": {
+                    "$$type": "object"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "description": "an expected message that omits responseTo fails the match",
+      "operations": [
+        {
+          "name": "runCommand",
+          "object": "database0",
+          "arguments": {
+            "commandName": "ping",
+            "command": {
+              "ping": 1
+            }
+          }
+        }
+      ],
+      "expectWireMessages": [
+        {
+          "client": "client0",
+          "messages": [
+            {
+              "opcode": "OP_MSG",
+              "flags": [],
+              "command": {
+                "ping": 1,
+                "$db": "expectWireMessages-mismatch",
+                "lsid": {
+                  "$$unsetOrMatches": {
+                    "$$type": "object"
+                  }
+                },
+                "$clusterTime": {
+                  "$$unsetOrMatches": {
+                    "$$type": "object"
+                  }
+                },
+                "$readPreference": {
+                  "$$unsetOrMatches": {
+                    "$$type": "object"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "description": "an expected message that omits flags fails the match",
+      "operations": [
+        {
+          "name": "runCommand",
+          "object": "database0",
+          "arguments": {
+            "commandName": "ping",
+            "command": {
+              "ping": 1
+            }
+          }
+        }
+      ],
+      "expectWireMessages": [
+        {
+          "client": "client0",
+          "messages": [
+            {
+              "opcode": "OP_MSG",
+              "responseTo": 0,
+              "command": {
+                "ping": 1,
+                "$db": "expectWireMessages-mismatch",
+                "lsid": {
+                  "$$unsetOrMatches": {
+                    "$$type": "object"
+                  }
+                },
+                "$clusterTime": {
+                  "$$unsetOrMatches": {
+                    "$$type": "object"
+                  }
+                },
+                "$readPreference": {
+                  "$$unsetOrMatches": {
+                    "$$type": "object"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "description": "a different opcode fails the match",
+      "operations": [
+        {
+          "name": "runCommand",
+          "object": "database0",
+          "arguments": {
+            "commandName": "ping",
+            "command": {
+              "ping": 1
+            }
+          }
+        }
+      ],
+      "expectWireMessages": [
+        {
+          "client": "client0",
+          "messages": [
+            {
+              "opcode": "OP_QUERY",
+              "responseTo": 0,
+              "flags": [],
+              "command": {
+                "ping": 1,
+                "$db": "expectWireMessages-mismatch",
+                "lsid": {
+                  "$$unsetOrMatches": {
+                    "$$type": "object"
+                  }
+                },
+                "$clusterTime": {
+                  "$$unsetOrMatches": {
+                    "$$type": "object"
+                  }
+                },
+                "$readPreference": {
+                  "$$unsetOrMatches": {
+                    "$$type": "object"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "description": "flags that were not set fail the match",
+      "operations": [
+        {
+          "name": "runCommand",
+          "object": "database0",
+          "arguments": {
+            "commandName": "ping",
+            "command": {
+              "ping": 1
+            }
+          }
+        }
+      ],
+      "expectWireMessages": [
+        {
+          "client": "client0",
+          "messages": [
+            {
+              "opcode": "OP_MSG",
+              "responseTo": 0,
+              "flags": [
+                "exhaustAllowed"
+              ],
+              "command": {
+                "ping": 1,
+                "$db": "expectWireMessages-mismatch",
+                "lsid": {
+                  "$$unsetOrMatches": {
+                    "$$type": "object"
+                  }
+                },
+                "$clusterTime": {
+                  "$$unsetOrMatches": {
+                    "$$type": "object"
+                  }
+                },
+                "$readPreference": {
+                  "$$unsetOrMatches": {
+                    "$$type": "object"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "description": "fewer expected messages than recorded messages fails without ignoreExtraMessages",
+      "operations": [
+        {
+          "name": "runCommand",
+          "object": "database0",
+          "arguments": {
+            "commandName": "ping",
+            "command": {
+              "ping": 1
+            }
+          }
+        },
+        {
+          "name": "runCommand",
+          "object": "database0",
+          "arguments": {
+            "commandName": "ping",
+            "command": {
+              "ping": 1
+            }
+          }
+        }
+      ],
+      "expectWireMessages": [
+        {
+          "client": "client0",
+          "messages": [
+            {
+              "opcode": "OP_MSG",
+              "responseTo": 0,
+              "flags": [],
+              "command": {
+                "ping": 1,
+                "$db": "expectWireMessages-mismatch",
+                "lsid": {
+                  "$$unsetOrMatches": {
+                    "$$type": "object"
+                  }
+                },
+                "$clusterTime": {
+                  "$$unsetOrMatches": {
+                    "$$type": "object"
+                  }
+                },
+                "$readPreference": {
+                  "$$unsetOrMatches": {
+                    "$$type": "object"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "description": "more expected messages than recorded messages fails",
+      "operations": [
+        {
+          "name": "runCommand",
+          "object": "database0",
+          "arguments": {
+            "commandName": "ping",
+            "command": {
+              "ping": 1
+            }
+          }
+        }
+      ],
+      "expectWireMessages": [
+        {
+          "client": "client0",
+          "messages": [
+            {
+              "opcode": "OP_MSG",
+              "responseTo": 0,
+              "flags": [],
+              "command": {
+                "ping": 1,
+                "$db": "expectWireMessages-mismatch",
+                "lsid": {
+                  "$$unsetOrMatches": {
+                    "$$type": "object"
+                  }
+                },
+                "$clusterTime": {
+                  "$$unsetOrMatches": {
+                    "$$type": "object"
+                  }
+                },
+                "$readPreference": {
+                  "$$unsetOrMatches": {
+                    "$$type": "object"
+                  }
+                }
+              }
+            },
+            {
+              "opcode": "OP_MSG",
+              "responseTo": 0,
+              "flags": [],
+              "command": {
+                "ping": 1,
+                "$db": "expectWireMessages-mismatch",
+                "lsid": {
+                  "$$unsetOrMatches": {
+                    "$$type": "object"
+                  }
+                },
+                "$clusterTime": {
+                  "$$unsetOrMatches": {
+                    "$$type": "object"
+                  }
+                },
+                "$readPreference": {
+                  "$$unsetOrMatches": {
+                    "$$type": "object"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -10,12 +10,15 @@ SCHEMA=../schema-latest.json
 	command-logging-and-monitoring \
 	command-logging-and-monitoring/logging \
 	command-logging-and-monitoring/monitoring \
+	compression \
 	connection-monitoring-and-pooling \
 	connection-monitoring-and-pooling/logging \
 	crud \
 	gridfs \
 	index-management \
 	load-balancers \
+	mongodb-handshake \
+	open-telemetry \
 	read-write-concern \
 	retryable-reads \
 	retryable-writes \
@@ -40,11 +43,14 @@ all: auth \
 	client-side-operations-timeout \
 	collection-management \
 	command-logging-and-monitoring \
+	compression \
 	connection-monitoring-and-pooling \
 	crud \
 	gridfs \
 	index-management \
 	load-balancers \
+	mongodb-handshake \
+	open-telemetry \
 	read-write-concern \
 	retryable-reads \
 	retryable-writes \
@@ -87,6 +93,9 @@ command-logging-and-monitoring/logging: HAS_AJV
 command-logging-and-monitoring/monitoring: HAS_AJV
 	@ajv --spec=draft2019 test -s $(SCHEMA) -d "../../command-logging-and-monitoring/tests/monitoring/*.yml" --valid
 
+compression: HAS_AJV
+	@ajv --spec=draft2019 test -s $(SCHEMA) -d "../../compression/tests/*.yml" --valid
+
 connection-monitoring-and-pooling: connection-monitoring-and-pooling/logging
 
 connection-monitoring-and-pooling/logging: HAS_AJV
@@ -103,6 +112,12 @@ index-management: HAS_AJV
 
 load-balancers: HAS_AJV
 	@ajv --spec=draft2019 test -s $(SCHEMA) -d "../../load-balancers/tests/*.yml" --valid
+
+mongodb-handshake: HAS_AJV
+	@ajv --spec=draft2019 test -s $(SCHEMA) -d "../../mongodb-handshake/tests/unified/*.yml" --valid
+
+open-telemetry: HAS_AJV
+	@ajv --spec=draft2019 test -s $(SCHEMA) -d "../../open-telemetry/tests/*/*.yml" --valid
 
 read-write-concern: HAS_AJV
 	@ajv --spec=draft2019 test -s $(SCHEMA) -d "../../read-write-concern/tests/operation/*.yml" --valid

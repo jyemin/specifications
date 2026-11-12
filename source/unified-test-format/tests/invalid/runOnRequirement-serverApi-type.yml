@@ -1,0 +1,10 @@
+description: runOnRequirement-serverApi-type
+
+schemaVersion: '1.30'
+
+runOnRequirements:
+  - serverApi: foo
+
+tests:
+  - description: foo
+    operations: []

@@ -1,0 +1,301 @@
+{
+  "description": "observeWireMessages",
+  "schemaVersion": "1.30",
+  "runOnRequirements": [
+    {
+      "compression": false,
+      "serverApi": false
+    }
+  ],
+  "createEntities": [
+    {
+      "client": {
+        "id": "client0",
+        "uriOptions": {
+          "maxPoolSize": 1
+        },
+        "observeWireMessages": {
+          "connections": [
+            "application"
+          ],
+          "phases": [
+            "operation"
+          ]
+        },
+        "setHostEnvironment": {
+          "AWS_EXECUTION_ENV": null
+        }
+      }
+    },
+    {
+      "database": {
+        "id": "database0",
+        "client": "client0",
+        "databaseName": "observeWireMessages"
+      }
+    },
+    {
+      "collection": {
+        "id": "collection0",
+        "database": "database0",
+        "collectionName": "test"
+      }
+    }
+  ],
+  "initialData": [
+    {
+      "collectionName": "test",
+      "databaseName": "observeWireMessages",
+      "documents": []
+    }
+  ],
+  "tests": [
+    {
+      "description": "a message written after the handshake is recorded and matched strictly",
+      "operations": [
+        {
+          "name": "runCommand",
+          "object": "database0",
+          "arguments": {
+            "commandName": "ping",
+            "command": {
+              "ping": 1
+            }
+          }
+        },
+        {
+          "name": "waitForWireMessages",
+          "object": "testRunner",
+          "arguments": {
+            "client": "client0",
+            "source": "application",
+            "count": 1
+          }
+        }
+      ],
+      "expectWireMessages": [
+        {
+          "client": "client0",
+          "source": "application",
+          "messages": [
+            {
+              "opcode": "OP_MSG",
+              "responseTo": 0,
+              "flags": [],
+              "command": {
+                "ping": 1,
+                "$db": "observeWireMessages",
+                "lsid": {
+                  "$$unsetOrMatches": {
+                    "$$type": "object"
+                  }
+                },
+                "$clusterTime": {
+                  "$$unsetOrMatches": {
+                    "$$type": "object"
+                  }
+                },
+                "$readPreference": {
+                  "$$unsetOrMatches": {
+                    "$$type": "object"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "description": "the sections of a message can be written out instead of using command",
+      "operations": [
+        {
+          "name": "runCommand",
+          "object": "database0",
+          "arguments": {
+            "commandName": "ping",
+            "command": {
+              "ping": 1
+            }
+          }
+        }
+      ],
+      "expectWireMessages": [
+        {
+          "client": "client0",
+          "messages": [
+            {
+              "opcode": "OP_MSG",
+              "responseTo": 0,
+              "flags": [],
+              "sections": [
+                {
+                  "kind": 0,
+                  "body": {
+                    "ping": 1,
+                    "$db": "observeWireMessages",
+                    "lsid": {
+                      "$$unsetOrMatches": {
+                        "$$type": "object"
+                      }
+                    },
+                    "$clusterTime": {
+                      "$$unsetOrMatches": {
+                        "$$type": "object"
+                      }
+                    },
+                    "$readPreference": {
+                      "$$unsetOrMatches": {
+                        "$$type": "object"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "description": "ignoreExtraMessages allows messages after the expected ones",
+      "operations": [
+        {
+          "name": "runCommand",
+          "object": "database0",
+          "arguments": {
+            "commandName": "ping",
+            "command": {
+              "ping": 1
+            }
+          }
+        },
+        {
+          "name": "runCommand",
+          "object": "database0",
+          "arguments": {
+            "commandName": "ping",
+            "command": {
+              "ping": 1
+            }
+          }
+        },
+        {
+          "name": "waitForWireMessages",
+          "object": "testRunner",
+          "arguments": {
+            "client": "client0",
+            "source": "application",
+            "count": 2
+          }
+        }
+      ],
+      "expectWireMessages": [
+        {
+          "client": "client0",
+          "ignoreExtraMessages": true,
+          "messages": [
+            {
+              "opcode": "OP_MSG",
+              "responseTo": 0,
+              "flags": [],
+              "command": {
+                "ping": 1,
+                "$db": "observeWireMessages",
+                "lsid": {
+                  "$$unsetOrMatches": {
+                    "$$type": "object"
+                  }
+                },
+                "$clusterTime": {
+                  "$$unsetOrMatches": {
+                    "$$type": "object"
+                  }
+                },
+                "$readPreference": {
+                  "$$unsetOrMatches": {
+                    "$$type": "object"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "description": "no message is recorded if the client writes none after the handshake",
+      "operations": [],
+      "expectWireMessages": [
+        {
+          "client": "client0",
+          "messages": []
+        }
+      ]
+    },
+    {
+      "description": "the sections of a message can be listed in any order",
+      "operations": [
+        {
+          "name": "insertMany",
+          "object": "collection0",
+          "arguments": {
+            "documents": [
+              {
+                "_id": 1
+              },
+              {
+                "_id": 2
+              }
+            ]
+          }
+        },
+        {
+          "name": "waitForWireMessages",
+          "object": "testRunner",
+          "arguments": {
+            "client": "client0",
+            "source": "application",
+            "count": 1
+          }
+        }
+      ],
+      "expectWireMessages": [
+        {
+          "client": "client0",
+          "source": "application",
+          "messages": [
+            {
+              "opcode": "OP_MSG",
+              "responseTo": 0,
+              "flags": [],
+              "sections": [
+                {
+                  "kind": 1,
+                  "identifier": "documents",
+                  "documents": [
+                    {
+                      "_id": 1
+                    },
+                    {
+                      "_id": 2
+                    }
+                  ]
+                },
+                {
+                  "kind": 0,
+                  "body": {
+                    "$$matchAsRoot": {
+                      "insert": "test",
+                      "$db": "observeWireMessages"
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

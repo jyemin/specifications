@@ -1,0 +1,22 @@
+{
+  "description": "entity-client-observeWireMessages-phases-required",
+  "schemaVersion": "1.30",
+  "createEntities": [
+    {
+      "client": {
+        "id": "client0",
+        "observeWireMessages": {
+          "connections": [
+            "application"
+          ]
+        }
+      }
+    }
+  ],
+  "tests": [
+    {
+      "description": "foo",
+      "operations": []
+    }
+  ]
+}

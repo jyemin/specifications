@@ -1,0 +1,25 @@
+{
+  "description": "entity-client-observeWireMessages-phases-enum",
+  "schemaVersion": "1.30",
+  "createEntities": [
+    {
+      "client": {
+        "id": "client0",
+        "observeWireMessages": {
+          "connections": [
+            "application"
+          ],
+          "phases": [
+            "foo"
+          ]
+        }
+      }
+    }
+  ],
+  "tests": [
+    {
+      "description": "foo",
+      "operations": []
+    }
+  ]
+}

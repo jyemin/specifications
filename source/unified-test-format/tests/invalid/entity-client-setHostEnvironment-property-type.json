@@ -1,0 +1,20 @@
+{
+  "description": "entity-client-setHostEnvironment-property-type",
+  "schemaVersion": "1.30",
+  "createEntities": [
+    {
+      "client": {
+        "id": "client0",
+        "setHostEnvironment": {
+          "FOO": 0
+        }
+      }
+    }
+  ],
+  "tests": [
+    {
+      "description": "foo",
+      "operations": []
+    }
+  ]
+}

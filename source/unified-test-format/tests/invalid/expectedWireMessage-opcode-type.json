@@ -1,0 +1,27 @@
+{
+  "description": "expectedWireMessage-opcode-type",
+  "schemaVersion": "1.30",
+  "createEntities": [
+    {
+      "client": {
+        "id": "client0"
+      }
+    }
+  ],
+  "tests": [
+    {
+      "description": "foo",
+      "operations": [],
+      "expectWireMessages": [
+        {
+          "client": "client0",
+          "messages": [
+            {
+              "opcode": 0
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
