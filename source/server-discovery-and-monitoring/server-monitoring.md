@@ -92,10 +92,12 @@ The client monitors servers using the hello or legacy hello commands. In MongoDB
 MongoDB \<= 4.2, a monitor uses the [Polling Protocol](#polling-protocol) pausing heartbeatFrequencyMS between
 [checks](#check). Clients check servers sooner in response to certain events.
 
-If a [server API version](../versioned-api/versioned-api.md) is requested, then the driver must use hello for
-monitoring. If a server API version is not requested, the initial handshake using the legacy hello command must include
-`helloOk: true`. If the response contains `helloOk: true`, then the driver must use the `hello` command for monitoring.
-If the response does not contain `helloOk: true`, then the driver must use the legacy hello command for monitoring.
+The initial handshake must include `helloOk: true`, whether it uses the hello or the legacy hello command. See the
+[MongoDB Handshake](../mongodb-handshake/handshake.md) specification. If a
+[server API version](../versioned-api/versioned-api.md) is requested, then the driver must use hello for monitoring. If
+a server API version is not requested and the response contains `helloOk: true`, then the driver must use the `hello`
+command for monitoring. If the response does not contain `helloOk: true`, then the driver must use the legacy hello
+command for monitoring.
 
 The socket used to check a server MUST use the same
 [connectTimeoutMS](https://www.mongodb.com/docs/manual/reference/connection-string/) as regular sockets. Multi-threaded
@@ -131,6 +133,11 @@ to acquire a socket; it uses a dedicated socket that does not count toward the p
 
 Drivers MUST NOT authenticate on sockets used for monitoring nor include SCRAM mechanism negotiation (i.e.
 `saslSupportedMechs`), as doing so would make monitoring checks more expensive for the server.
+
+Drivers MUST NOT negotiate compression on sockets used for monitoring. The handshake on a monitoring socket MUST NOT
+request any compressor. The messages sent on a monitoring socket are `hello` and legacy hello commands, which
+[MUST NOT be compressed](../compression/OP_COMPRESSED.md#messages-not-allowed-to-be-compressed) in any case, so
+negotiating a compressor gains nothing.
 
 ##### Servers are checked periodically
 
@@ -1008,5 +1015,9 @@ outdated or inaccurate.
 
 - 2023-10-05: Add serverMonitoringMode and default to the polling protocol on FaaS. Clients MUST NOT use dedicated
     connections to measure RTT when using the polling protocol.
+
+- 2026-11-11: Drivers MUST NOT negotiate compression on monitoring sockets.
+
+- 2026-11-11: The initial handshake must include `helloOk: true`, whether it uses hello or legacy hello.
 
 ______________________________________________________________________

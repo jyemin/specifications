@@ -1,0 +1,77 @@
+description: monitor-streaming
+schemaVersion: '1.30'
+# The client is configured with compressors, but the monitor connection must not negotiate or use them.
+runOnRequirements:
+  - minServerVersion: '4.4'
+    auth: false
+    # A load-balanced deployment handshakes with hello and loadBalanced, and has no monitors.
+    topologies: [ single, replicaset, sharded ]
+    # The messages that the client writes change if the environment enables a server API version.
+    serverApi: false
+createEntities:
+  - client:
+      id: &client client
+      useMultipleMongoses: false
+      uriOptions:
+        appname: &appName handshakeTest
+        serverMonitoringMode: stream
+        heartbeatFrequencyMS: 500
+        compressors: zlib
+      observeWireMessages:
+        connections: [monitor]
+        phases: [handshake, operation]
+  - database:
+      id: &database database
+      client: *client
+      databaseName: handshake-test
+tests:
+  - description: monitor handshake carries no compression, then sends one streaming hello with exhaustAllowed
+    operations:
+      - name: waitForWireMessages
+        object: testRunner
+        arguments: { client: *client, source: monitor, count: 2 }
+    expectWireMessages:
+      - client: *client
+        source: monitor
+        ignoreExtraMessages: true
+        messages:
+          - opcode: OP_MSG
+            responseTo: 0
+            flags: []
+            command:
+              isMaster: 1
+              helloOk: true
+              backpressure: "2"
+              # The client configures a compressor, but a monitoring handshake requests none. An empty array is allowed.
+              compression: { $$unsetOrMatches: [] }
+              client:
+                application: { name: *appName }
+                driver:
+                  name: { $$type: string }
+                  version: { $$type: string }
+                os:
+                  type: { $$type: string }
+                  name: { $$unsetOrMatches: { $$type: string } }
+                  architecture: { $$unsetOrMatches: { $$type: string } }
+                  version: { $$unsetOrMatches: { $$type: string } }
+                platform: { $$unsetOrMatches: { $$type: string } }
+                # env is absent on a plain host. /.dockerenv adds container.runtime, and an agent's environment variables add agent.
+                env:
+                  $$unsetOrMatches:
+                    container: { $$unsetOrMatches: { runtime: docker } }
+                    agent: { $$unsetOrMatches: { $$type: string } }
+              $db: admin
+              $readPreference: { $$unsetOrMatches: { mode: primaryPreferred } }
+          - opcode: OP_MSG
+            responseTo: 0
+            flags: [exhaustAllowed]
+            command:
+              hello: 1
+              # The handshake carried helloOk, which the server remembers for the connection, so a later hello command need not.
+              helloOk: { $$unsetOrMatches: true }
+              topologyVersion:
+                processId: { $$type: objectId }
+                counter: { $$type: [int, long] }
+              maxAwaitTimeMS: 500
+              $db: admin
+              $readPreference: { $$unsetOrMatches: { mode: primaryPreferred } }

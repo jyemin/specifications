@@ -1,0 +1,96 @@
+description: monitor-polling
+schemaVersion: '1.30'
+runOnRequirements:
+  - minServerVersion: '4.4'
+    auth: false
+    # A load-balanced deployment handshakes with hello and loadBalanced, and has no monitors.
+    topologies: [ single, replicaset, sharded ]
+    # The messages that the client writes change if the environment enables a server API version.
+    serverApi: false
+createEntities:
+  - client:
+      id: &client client
+      useMultipleMongoses: false
+      uriOptions:
+        appname: &appName handshakeTest
+        serverMonitoringMode: poll
+        heartbeatFrequencyMS: 500
+        compressors: zlib
+      observeWireMessages:
+        connections: [monitor, rtt]
+        phases: [handshake, operation]
+  - database:
+      id: &database database
+      client: *client
+      databaseName: handshake-test
+tests:
+  - description: in poll mode each hello is a plain hello with no topologyVersion and no exhaustAllowed
+    operations:
+      - name: waitForWireMessages
+        object: testRunner
+        arguments: { client: *client, source: monitor, count: 3 }
+    expectWireMessages:
+      - client: *client
+        source: monitor
+        ignoreExtraMessages: true
+        messages:
+          - opcode: OP_MSG
+            responseTo: 0
+            flags: []
+            command:
+              isMaster: 1
+              helloOk: true
+              backpressure: "2"
+              # The client configures a compressor, but a monitoring handshake requests none. An empty array is allowed.
+              compression: { $$unsetOrMatches: [] }
+              client:
+                application: { name: *appName }
+                driver:
+                  name: { $$type: string }
+                  version: { $$type: string }
+                os:
+                  type: { $$type: string }
+                  name: { $$unsetOrMatches: { $$type: string } }
+                  architecture: { $$unsetOrMatches: { $$type: string } }
+                  version: { $$unsetOrMatches: { $$type: string } }
+                platform: { $$unsetOrMatches: { $$type: string } }
+                # env is absent on a plain host. /.dockerenv adds container.runtime, and an agent's environment variables add agent.
+                env:
+                  $$unsetOrMatches:
+                    container: { $$unsetOrMatches: { runtime: docker } }
+                    agent: { $$unsetOrMatches: { $$type: string } }
+              $db: admin
+              $readPreference: { $$unsetOrMatches: { mode: primaryPreferred } }
+          - opcode: OP_MSG
+            responseTo: 0
+            flags: []
+            command:
+              hello: 1
+              # The handshake carried helloOk, which the server remembers for the connection, so a later hello command need not.
+              helloOk: { $$unsetOrMatches: true }
+              $db: admin
+              $readPreference: { $$unsetOrMatches: { mode: primaryPreferred } }
+          - opcode: OP_MSG
+            responseTo: 0
+            flags: []
+            command:
+              hello: 1
+              # The handshake carried helloOk, which the server remembers for the connection, so a later hello command need not.
+              helloOk: { $$unsetOrMatches: true }
+              $db: admin
+              $readPreference: { $$unsetOrMatches: { mode: primaryPreferred } }
+
+  - description: in poll mode there is no connection that measures the round trip time
+    operations:
+      - name: waitForWireMessages
+        object: testRunner
+        arguments: { client: *client, source: monitor, count: 3 }
+      # The monitor is running. Give a dedicated round trip time connection, if the driver wrongly opened one, time to write.
+      - name: wait
+        object: testRunner
+        arguments: { ms: 1000 }
+    expectWireMessages:
+      - client: *client
+        source: rtt
+        ignoreExtraMessages: true
+        messages: []
