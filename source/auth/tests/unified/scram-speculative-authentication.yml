@@ -1,0 +1,77 @@
+description: scram-speculative-authentication
+schemaVersion: '1.30'
+runOnRequirements:
+  - minServerVersion: '4.4'
+    auth: true
+    authMechanism: SCRAM-SHA-256
+    # A load-balanced deployment handshakes with hello and loadBalanced, and has no monitors.
+    topologies: [ single, replicaset, sharded ]
+    # The messages that the client writes change if the environment enables compression or a server API version.
+    compression: false
+    serverApi: false
+createEntities:
+  - client:
+      id: &client client
+      useMultipleMongoses: false
+      uriOptions:
+        appname: &appName handshakeTest
+        authMechanism: SCRAM-SHA-256
+      observeWireMessages:
+        connections: [application]
+        phases: [handshake]
+  - database:
+      id: &database database
+      client: *client
+      databaseName: handshake-test
+tests:
+  - description: speculative SCRAM-SHA-256 handshake and the saslContinue that follows
+    operations:
+      - name: runCommand
+        object: *database
+        arguments: { commandName: ping, command: { ping: 1 } }
+    expectWireMessages:
+      - client: *client
+        messages:
+          - opcode: OP_MSG
+            responseTo: 0
+            flags: []
+            command:
+              isMaster: 1
+              helloOk: true
+              backpressure: "2"
+              # Drivers that follow the OP_COMPRESSED SHOULD send an empty array when no compressor is configured; others omit it.
+              compression: { $$unsetOrMatches: [] }
+              client:
+                application: { name: *appName }
+                driver:
+                  name: { $$type: string }
+                  version: { $$type: string }
+                os:
+                  type: { $$type: string }
+                  name: { $$unsetOrMatches: { $$type: string } }
+                  architecture: { $$unsetOrMatches: { $$type: string } }
+                  version: { $$unsetOrMatches: { $$type: string } }
+                platform: { $$unsetOrMatches: { $$type: string } }
+                # env is absent on a plain host. /.dockerenv adds container.runtime, and an agent's environment variables add agent.
+                env:
+                  $$unsetOrMatches:
+                    container: { $$unsetOrMatches: { runtime: docker } }
+                    agent: { $$unsetOrMatches: { $$type: string } }
+              speculativeAuthenticate:
+                saslStart: 1
+                mechanism: SCRAM-SHA-256
+                payload: { $$type: binData }
+                db: admin
+                options: { skipEmptyExchange: true }
+                # The generic SASL section of the auth spec shows autoAuthorize in saslStart, and the SCRAM sections do not. It does nothing.
+                autoAuthorize: { $$unsetOrMatches: 1 }
+              $db: admin
+              $readPreference: { $$unsetOrMatches: { mode: primaryPreferred } }
+          - opcode: OP_MSG
+            responseTo: 0
+            flags: []
+            command:
+              saslContinue: 1
+              conversationId: { $$type: int }
+              payload: { $$type: binData }
+              $db: admin
