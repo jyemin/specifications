@@ -1,0 +1,324 @@
+{
+  "description": "trace-context",
+  "schemaVersion": "1.30",
+  "runOnRequirements": [
+    {
+      "compression": false
+    }
+  ],
+  "createEntities": [
+    {
+      "client": {
+        "id": "tracingClient",
+        "useMultipleMongoses": false,
+        "uriOptions": {
+          "maxPoolSize": 1
+        },
+        "observeTracingMessages": {
+          "enableCommandPayload": true
+        },
+        "observeWireMessages": {
+          "connections": [
+            "application"
+          ],
+          "phases": [
+            "operation"
+          ]
+        }
+      }
+    },
+    {
+      "client": {
+        "id": "plainClient",
+        "useMultipleMongoses": false,
+        "uriOptions": {
+          "maxPoolSize": 1
+        },
+        "observeWireMessages": {
+          "connections": [
+            "application"
+          ],
+          "phases": [
+            "operation"
+          ]
+        }
+      }
+    },
+    {
+      "client": {
+        "id": "handshakeClient",
+        "useMultipleMongoses": false,
+        "observeTracingMessages": {
+          "enableCommandPayload": true
+        },
+        "observeWireMessages": {
+          "connections": [
+            "application"
+          ],
+          "phases": [
+            "handshake"
+          ]
+        }
+      }
+    },
+    {
+      "database": {
+        "id": "database0",
+        "client": "tracingClient",
+        "databaseName": "trace-context"
+      }
+    },
+    {
+      "collection": {
+        "id": "collection0",
+        "database": "database0",
+        "collectionName": "test"
+      }
+    },
+    {
+      "database": {
+        "id": "plainDatabase",
+        "client": "plainClient",
+        "databaseName": "trace-context"
+      }
+    },
+    {
+      "collection": {
+        "id": "plainCollection",
+        "database": "plainDatabase",
+        "collectionName": "test"
+      }
+    },
+    {
+      "database": {
+        "id": "handshakeDatabase",
+        "client": "handshakeClient",
+        "databaseName": "trace-context"
+      }
+    },
+    {
+      "collection": {
+        "id": "handshakeCollection",
+        "database": "handshakeDatabase",
+        "collectionName": "test"
+      }
+    }
+  ],
+  "initialData": [
+    {
+      "collectionName": "test",
+      "databaseName": "trace-context",
+      "documents": []
+    }
+  ],
+  "tests": [
+    {
+      "description": "a command carries the trace context of its command span in a payload type 3 section",
+      "runOnRequirements": [
+        {
+          "minServerVersion": "9.0"
+        }
+      ],
+      "operations": [
+        {
+          "name": "find",
+          "object": "collection0",
+          "arguments": {
+            "filter": {
+              "x": 1
+            }
+          }
+        },
+        {
+          "name": "waitForWireMessages",
+          "object": "testRunner",
+          "arguments": {
+            "client": "tracingClient",
+            "source": "application",
+            "count": 1
+          }
+        }
+      ],
+      "expectWireMessages": [
+        {
+          "client": "tracingClient",
+          "source": "application",
+          "messages": [
+            {
+              "opcode": "OP_MSG",
+              "responseTo": 0,
+              "flags": [],
+              "sections": [
+                {
+                  "kind": 0,
+                  "body": {
+                    "$$matchAsRoot": {
+                      "find": "test",
+                      "filter": {
+                        "x": 1
+                      },
+                      "$db": "trace-context"
+                    }
+                  }
+                },
+                {
+                  "kind": 3,
+                  "body": {
+                    "otel": {
+                      "traceparent": {
+                        "$$type": "string"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "description": "a command sent to a server that does not support the trace context has no payload type 3 section even if tracing is enabled",
+      "runOnRequirements": [
+        {
+          "maxServerVersion": "8.99"
+        }
+      ],
+      "operations": [
+        {
+          "name": "find",
+          "object": "collection0",
+          "arguments": {
+            "filter": {
+              "x": 1
+            }
+          }
+        },
+        {
+          "name": "waitForWireMessages",
+          "object": "testRunner",
+          "arguments": {
+            "client": "tracingClient",
+            "source": "application",
+            "count": 1
+          }
+        }
+      ],
+      "expectWireMessages": [
+        {
+          "client": "tracingClient",
+          "source": "application",
+          "messages": [
+            {
+              "opcode": "OP_MSG",
+              "responseTo": 0,
+              "flags": [],
+              "sections": [
+                {
+                  "kind": 0,
+                  "body": {
+                    "$$matchAsRoot": {
+                      "find": "test",
+                      "filter": {
+                        "x": 1
+                      },
+                      "$db": "trace-context"
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "description": "a command sent by a client that does not have tracing enabled has no payload type 3 section",
+      "operations": [
+        {
+          "name": "find",
+          "object": "plainCollection",
+          "arguments": {
+            "filter": {
+              "x": 1
+            }
+          }
+        },
+        {
+          "name": "waitForWireMessages",
+          "object": "testRunner",
+          "arguments": {
+            "client": "plainClient",
+            "source": "application",
+            "count": 1
+          }
+        }
+      ],
+      "expectWireMessages": [
+        {
+          "client": "plainClient",
+          "source": "application",
+          "messages": [
+            {
+              "opcode": "OP_MSG",
+              "responseTo": 0,
+              "flags": [],
+              "sections": [
+                {
+                  "kind": 0,
+                  "body": {
+                    "$$matchAsRoot": {
+                      "find": "test",
+                      "filter": {
+                        "x": 1
+                      },
+                      "$db": "trace-context"
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "description": "the handshake has no payload type 3 section even if tracing is enabled",
+      "operations": [
+        {
+          "name": "find",
+          "object": "handshakeCollection",
+          "arguments": {
+            "filter": {
+              "x": 1
+            }
+          }
+        }
+      ],
+      "expectWireMessages": [
+        {
+          "client": "handshakeClient",
+          "source": "application",
+          "ignoreExtraMessages": true,
+          "messages": [
+            {
+              "opcode": "OP_MSG",
+              "responseTo": 0,
+              "flags": [],
+              "sections": [
+                {
+                  "kind": 0,
+                  "body": {
+                    "$$matchAsRoot": {
+                      "$db": "admin"
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
