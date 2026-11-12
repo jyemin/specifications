@@ -1,0 +1,43 @@
+description: no-monitoring-connections
+
+schemaVersion: '1.30'
+
+runOnRequirements:
+  - topologies: [ load-balanced ]
+
+createEntities:
+  - client:
+      id: &client0 client0
+      useMultipleMongoses: true
+      uriOptions:
+        heartbeatFrequencyMS: 500
+      observeWireMessages:
+        connections: [ monitor, rtt ]
+        phases: [ handshake, operation ]
+  - database:
+      id: &database0 database0
+      client: *client0
+      databaseName: &database0Name database0
+
+tests:
+  - description: a client of a load balancer opens no monitoring connection and no round trip time connection
+    operations:
+      - name: runCommand
+        object: *database0
+        arguments:
+          commandName: ping
+          command: { ping: 1 }
+      # A monitor, if the driver wrongly started one, writes its first message as soon as the client is created, and then
+      # one every heartbeatFrequencyMS.
+      - name: wait
+        object: testRunner
+        arguments: { ms: 1500 }
+    expectWireMessages:
+      - client: *client0
+        source: monitor
+        ignoreExtraMessages: true
+        messages: []
+      - client: *client0
+        source: rtt
+        ignoreExtraMessages: true
+        messages: []

@@ -136,13 +136,13 @@ Example:
 Driver connection string contains `loadBalanced=true`:
 
 ```typescript
-{ hello: 1, loadBalanced: true }
+{ hello: 1, helloOk: true, loadBalanced: true }
 ```
 
 Driver connection string contains `loadBalanced=false` or no - Code:`loadBalanced` option:
 
 ```typescript
-{ hello: 1 }
+{ hello: 1, helloOk: true }
 ```
 
 When the server's hello response does not contain a `serviceId` field, the driver MUST throw an exception with the
@@ -329,6 +329,7 @@ only load balancers that support the PROXY protocol would be supported.
 
 ## Changelog
 
+- 2026-11-11: Show `helloOk: true` in the examples of the handshake, which the MongoDB Handshake specification requires.
 - 2024-04-25: Clarify that `TopologyDescriptionChangedEvent` must be emitted on topology close
 - 2024-03-06: Migrated from reStructuredText to Markdown.
 - 2022-10-05: Remove spec front matter and reformat changelog.

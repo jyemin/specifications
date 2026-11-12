@@ -1,0 +1,306 @@
+{
+  "description": "lb-handshake-uses-hello",
+  "schemaVersion": "1.30",
+  "runOnRequirements": [
+    {
+      "topologies": [
+        "load-balanced"
+      ],
+      "compression": false,
+      "serverApi": false
+    }
+  ],
+  "tests": [
+    {
+      "description": "the handshake is a hello command with loadBalanced and helloOk",
+      "runOnRequirements": [
+        {
+          "auth": false
+        }
+      ],
+      "operations": [
+        {
+          "name": "createEntities",
+          "object": "testRunner",
+          "arguments": {
+            "entities": [
+              {
+                "client": {
+                  "id": "client1",
+                  "useMultipleMongoses": true,
+                  "uriOptions": {
+                    "appname": "handshakeTest"
+                  },
+                  "observeWireMessages": {
+                    "connections": [
+                      "application"
+                    ],
+                    "phases": [
+                      "handshake"
+                    ]
+                  }
+                }
+              },
+              {
+                "database": {
+                  "id": "database1",
+                  "client": "client1",
+                  "databaseName": "handshake-test"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "runCommand",
+          "object": "database1",
+          "arguments": {
+            "commandName": "ping",
+            "command": {
+              "ping": 1
+            }
+          }
+        }
+      ],
+      "expectWireMessages": [
+        {
+          "client": "client1",
+          "source": "application",
+          "messages": [
+            {
+              "opcode": "OP_MSG",
+              "responseTo": 0,
+              "flags": [],
+              "command": {
+                "hello": 1,
+                "loadBalanced": true,
+                "helloOk": true,
+                "backpressure": "2",
+                "compression": {
+                  "$$unsetOrMatches": []
+                },
+                "client": {
+                  "application": {
+                    "name": "handshakeTest"
+                  },
+                  "driver": {
+                    "name": {
+                      "$$type": "string"
+                    },
+                    "version": {
+                      "$$type": "string"
+                    }
+                  },
+                  "os": {
+                    "type": {
+                      "$$type": "string"
+                    },
+                    "name": {
+                      "$$unsetOrMatches": {
+                        "$$type": "string"
+                      }
+                    },
+                    "architecture": {
+                      "$$unsetOrMatches": {
+                        "$$type": "string"
+                      }
+                    },
+                    "version": {
+                      "$$unsetOrMatches": {
+                        "$$type": "string"
+                      }
+                    }
+                  },
+                  "platform": {
+                    "$$unsetOrMatches": {
+                      "$$type": "string"
+                    }
+                  },
+                  "env": {
+                    "$$unsetOrMatches": {
+                      "container": {
+                        "$$unsetOrMatches": {
+                          "runtime": "docker"
+                        }
+                      },
+                      "agent": {
+                        "$$unsetOrMatches": {
+                          "$$type": "string"
+                        }
+                      }
+                    }
+                  }
+                },
+                "$db": "admin",
+                "$readPreference": {
+                  "$$unsetOrMatches": {
+                    "mode": "primaryPreferred"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "description": "the handshake with authentication is a hello command with loadBalanced and helloOk, and carries speculativeAuthenticate",
+      "runOnRequirements": [
+        {
+          "auth": true
+        }
+      ],
+      "operations": [
+        {
+          "name": "createEntities",
+          "object": "testRunner",
+          "arguments": {
+            "entities": [
+              {
+                "client": {
+                  "id": "client2",
+                  "useMultipleMongoses": true,
+                  "uriOptions": {
+                    "appname": "handshakeTest",
+                    "authMechanism": "SCRAM-SHA-256"
+                  },
+                  "observeWireMessages": {
+                    "connections": [
+                      "application"
+                    ],
+                    "phases": [
+                      "handshake"
+                    ]
+                  }
+                }
+              },
+              {
+                "database": {
+                  "id": "database2",
+                  "client": "client2",
+                  "databaseName": "handshake-test"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "runCommand",
+          "object": "database2",
+          "arguments": {
+            "commandName": "ping",
+            "command": {
+              "ping": 1
+            }
+          }
+        }
+      ],
+      "expectWireMessages": [
+        {
+          "client": "client2",
+          "source": "application",
+          "messages": [
+            {
+              "opcode": "OP_MSG",
+              "responseTo": 0,
+              "flags": [],
+              "command": {
+                "hello": 1,
+                "loadBalanced": true,
+                "helloOk": true,
+                "backpressure": "2",
+                "compression": {
+                  "$$unsetOrMatches": []
+                },
+                "client": {
+                  "application": {
+                    "name": "handshakeTest"
+                  },
+                  "driver": {
+                    "name": {
+                      "$$type": "string"
+                    },
+                    "version": {
+                      "$$type": "string"
+                    }
+                  },
+                  "os": {
+                    "type": {
+                      "$$type": "string"
+                    },
+                    "name": {
+                      "$$unsetOrMatches": {
+                        "$$type": "string"
+                      }
+                    },
+                    "architecture": {
+                      "$$unsetOrMatches": {
+                        "$$type": "string"
+                      }
+                    },
+                    "version": {
+                      "$$unsetOrMatches": {
+                        "$$type": "string"
+                      }
+                    }
+                  },
+                  "platform": {
+                    "$$unsetOrMatches": {
+                      "$$type": "string"
+                    }
+                  },
+                  "env": {
+                    "$$unsetOrMatches": {
+                      "container": {
+                        "$$unsetOrMatches": {
+                          "runtime": "docker"
+                        }
+                      },
+                      "agent": {
+                        "$$unsetOrMatches": {
+                          "$$type": "string"
+                        }
+                      }
+                    }
+                  }
+                },
+                "speculativeAuthenticate": {
+                  "saslStart": 1,
+                  "mechanism": "SCRAM-SHA-256",
+                  "payload": {
+                    "$$type": "binData"
+                  },
+                  "db": "admin",
+                  "options": {
+                    "skipEmptyExchange": true
+                  }
+                },
+                "$db": "admin",
+                "$readPreference": {
+                  "$$unsetOrMatches": {
+                    "mode": "primaryPreferred"
+                  }
+                }
+              }
+            },
+            {
+              "opcode": "OP_MSG",
+              "responseTo": 0,
+              "flags": [],
+              "command": {
+                "saslContinue": 1,
+                "conversationId": {
+                  "$$type": "int"
+                },
+                "payload": {
+                  "$$type": "binData"
+                },
+                "$db": "admin"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
