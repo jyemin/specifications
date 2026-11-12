@@ -1,0 +1,61 @@
+description: handshake-uses-hello
+schemaVersion: '1.30'
+runOnRequirements:
+  - minServerVersion: '5.0'
+    auth: false
+    # A load-balanced deployment handshakes with hello and loadBalanced, and has no monitors.
+    topologies: [ single, replicaset, sharded ]
+    # The messages that the client writes change if the environment enables compression.
+    compression: false
+createEntities:
+  - client:
+      id: &client client
+      useMultipleMongoses: false
+      uriOptions:
+        appname: &appName handshakeTest
+      serverApi: { version: '1' }
+      observeWireMessages:
+        connections: [application]
+        phases: [handshake]
+  - database:
+      id: &database database
+      client: *client
+      databaseName: handshake-test
+tests:
+  - description: with serverApi the handshake uses hello and carries apiVersion
+    operations:
+      - name: runCommand
+        object: *database
+        arguments: { commandName: ping, command: { ping: 1 } }
+    expectWireMessages:
+      - client: *client
+        messages:
+          - opcode: OP_MSG
+            responseTo: 0
+            flags: []
+            command:
+              hello: 1
+              helloOk: true
+              backpressure: "2"
+              # Drivers that follow the OP_COMPRESSED SHOULD send an empty array when no compressor is configured; others omit it.
+              compression: { $$unsetOrMatches: [] }
+              apiVersion: '1'
+              client:
+                application: { name: *appName }
+                driver:
+                  name: { $$type: string }
+                  version: { $$type: string }
+                os:
+                  type: { $$type: string }
+                  name: { $$unsetOrMatches: { $$type: string } }
+                  architecture: { $$unsetOrMatches: { $$type: string } }
+                  version: { $$unsetOrMatches: { $$type: string } }
+                platform: { $$unsetOrMatches: { $$type: string } }
+                # env is absent on a plain host. /.dockerenv adds container.runtime, and an agent's environment variables add agent.
+                env:
+                  $$unsetOrMatches:
+                    container: { $$unsetOrMatches: { runtime: docker } }
+                    agent: { $$unsetOrMatches: { $$type: string } }
+              $db: admin
+              # Added by the driver on a direct connection to a replica set member; absent on a standalone.
+              $readPreference: { $$unsetOrMatches: { mode: primaryPreferred } }

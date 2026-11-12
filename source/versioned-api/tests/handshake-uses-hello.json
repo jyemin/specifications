@@ -1,0 +1,141 @@
+{
+  "description": "handshake-uses-hello",
+  "schemaVersion": "1.30",
+  "runOnRequirements": [
+    {
+      "minServerVersion": "5.0",
+      "auth": false,
+      "topologies": [
+        "single",
+        "replicaset",
+        "sharded"
+      ],
+      "compression": false
+    }
+  ],
+  "createEntities": [
+    {
+      "client": {
+        "id": "client",
+        "useMultipleMongoses": false,
+        "uriOptions": {
+          "appname": "handshakeTest"
+        },
+        "serverApi": {
+          "version": "1"
+        },
+        "observeWireMessages": {
+          "connections": [
+            "application"
+          ],
+          "phases": [
+            "handshake"
+          ]
+        }
+      }
+    },
+    {
+      "database": {
+        "id": "database",
+        "client": "client",
+        "databaseName": "handshake-test"
+      }
+    }
+  ],
+  "tests": [
+    {
+      "description": "with serverApi the handshake uses hello and carries apiVersion",
+      "operations": [
+        {
+          "name": "runCommand",
+          "object": "database",
+          "arguments": {
+            "commandName": "ping",
+            "command": {
+              "ping": 1
+            }
+          }
+        }
+      ],
+      "expectWireMessages": [
+        {
+          "client": "client",
+          "messages": [
+            {
+              "opcode": "OP_MSG",
+              "responseTo": 0,
+              "flags": [],
+              "command": {
+                "hello": 1,
+                "helloOk": true,
+                "backpressure": "2",
+                "compression": {
+                  "$$unsetOrMatches": []
+                },
+                "apiVersion": "1",
+                "client": {
+                  "application": {
+                    "name": "handshakeTest"
+                  },
+                  "driver": {
+                    "name": {
+                      "$$type": "string"
+                    },
+                    "version": {
+                      "$$type": "string"
+                    }
+                  },
+                  "os": {
+                    "type": {
+                      "$$type": "string"
+                    },
+                    "name": {
+                      "$$unsetOrMatches": {
+                        "$$type": "string"
+                      }
+                    },
+                    "architecture": {
+                      "$$unsetOrMatches": {
+                        "$$type": "string"
+                      }
+                    },
+                    "version": {
+                      "$$unsetOrMatches": {
+                        "$$type": "string"
+                      }
+                    }
+                  },
+                  "platform": {
+                    "$$unsetOrMatches": {
+                      "$$type": "string"
+                    }
+                  },
+                  "env": {
+                    "$$unsetOrMatches": {
+                      "container": {
+                        "$$unsetOrMatches": {
+                          "runtime": "docker"
+                        }
+                      },
+                      "agent": {
+                        "$$unsetOrMatches": {
+                          "$$type": "string"
+                        }
+                      }
+                    }
+                  }
+                },
+                "$db": "admin",
+                "$readPreference": {
+                  "$$unsetOrMatches": {
+                    "mode": "primaryPreferred"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
